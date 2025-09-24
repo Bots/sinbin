@@ -1,8 +1,6 @@
-# 🫙 Swear Jar - Real-time Twitch Overlay
+# 🫙 SinBin - Real-time Twitch Overlay
 
 A real-time speech recognition overlay that detects curse words while streaming and adds them to a visual "swear jar" with sound effects. Perfect for Twitch streamers who want to gamify their language!
-
-![Swear Jar Demo](https://via.placeholder.com/400x200/ff6b35/ffffff?text=Swear+Jar+Overlay)
 
 ## ✨ Features
 
@@ -36,10 +34,9 @@ You'll need a Google Cloud account with billing enabled (don't worry - costs are
 
 ```bash
 # Clone or create project directory
-mkdir swear-jar-overlay
-cd swear-jar-overlay
-
-# Download all files to this directory (see file structure below)
+mkdir sinbin
+cd sinbin
+git clone https://github.com/Bots/sinbin.git
 ```
 
 ### 2. Install Dependencies
@@ -69,7 +66,7 @@ npm install
 4. **Create Service Account:**
     - Go to **APIs & Services** → **Credentials**
     - Click **Create Credentials** → **Service Account**
-    - Name: `swear-jar-speech`
+    - Name: `sinbin`
     - Download the JSON key file
     - Save as `google-credentials.json` in your project root
 
@@ -101,7 +98,7 @@ sox --version
 Create these files in your project directory:
 
 ```
-swear-jar-overlay/
+sinbin/
 ├── src/
 │   └── server.ts                    # Main server code
 ├── public/
@@ -147,7 +144,7 @@ Control Panel: http://localhost:3000/control.html
 1. **Add Browser Source:**
 
     - Click **+** in Sources → **Browser Source**
-    - Name: "Swear Jar"
+    - Name: "SinBin"
     - **URL:** `http://localhost:3000/overlay.html`
     - **Width:** 400px
     - **Height:** 200px
