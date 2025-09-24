@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swear Jar Overlay</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: transparent;
+            font-family: 'Arial Black', Arial, sans-serif;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        .swear-jar-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .jar {
+            width: 80px;
+            height: 100px;
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e8f0 50%, #b8dce8 100%);
+            border: 3px solid #8ab4c7;
+            border-radius: 0 0 40px 40px;
+            position: relative;
+            box-shadow: 
+                inset 0 0 20px rgba(255, 255, 255, 0.3),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .jar::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -5px;
+            right: -5px;
+            height: 15px;
+            background: #8ab4c7;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .jar::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 10px;
+            right: 10px;
+            height: 8px;
+            background: #6a94a7;
+            border-radius: 4px;
+        }
+
+        .jar-contents {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            background: linear-gradient(180deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            border-radius: 0 0 35px 35px;
+            transition: height 0.5s ease-in-out;
+            min-height: 0px;
+        }
+
+        .counter {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ff6b35;
+            text-shadow: 
+                3px 3px 0px #000,
+                -1px -1px 0px #000,  
+                1px -1px 0px #000,
+                -1px 1px 0px #000,
+                1px 1px 0px #000;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .counter.updated {
+            animation: bounce 0.6s ease-in-out;
+        }
+
+        .label {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin-top: 5px;
+            text-shadow: 
+                2px 2px 0px #000,
+                -1px -1px 0px #000,  
+                1px -1px 0px #000,
+                -1px 1px 0px #000,
+                1px 1px 0px #000;
+        }
+
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(1.1); }
+            75% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes coinDrop {
+            0% { transform: translateY(-20px) scale(1.2); opacity: 0.8; }
+            50% { transform: translateY(0px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(0px) scale(1); opacity: 1; }
+        }
+
+        .jar.coin-drop {
+            animation: coinDrop 0.6s ease-out;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .connected {
+            color: #4CAF50;
+        }
+
+        .disconnected {
+            color: #f44336;
+        }
+
+        .listening {
+            color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="status">Connecting...</div>
+    
+    <div class="swear-jar-container">
+        <div class="jar">
+            <div class="jar-contents" id="jarContents"></div>
+        </div>
+        <div>
+            <div class="counter" id="counter">0</div>
+            <div class="label">SWEAR JAR</div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        class SwearJarOverlay {
+            constructor() {
+                this.socket = io();
+                this.counter = document.getElementById('counter');
+                this.status = document.getElementById('status');
+                this.jarContents = document.getElementById('jarContents');
+                this.currentCount = 0;
+                this.soundEnabled = true;
+                this.soundVolume = 0.3;
+                
+                this.setupSocketEvents();
+                this.setupAudio();
+            }
+
+            setupAudio() {
+                // Create multiple audio instances for rapid-fire curse detection
+                this.audioPool = [];
+                for (let i = 0; i < 5; i++) {
+                    const audio = new Audio();
+                    
+                    // Generate a nice "coin drop" sound using Web Audio API
+                    this.generateCoinSound().then(audioBuffer => {
+                        const blob = this.audioBufferToBlob(audioBuffer);
+                        audio.src = URL.createObjectURL(blob);
+                        audio.volume = this.soundVolume;
+                        audio.preload = 'auto';
+                    });
+                    
+                    this.audioPool.push(audio);
+                }
+                this.audioIndex = 0;
+            }
+
+            async generateCoinSound() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const sampleRate = audioContext.sampleRate;
+                const duration = 0.4; // 400ms sound
+                const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    
+                    // Create a pleasant "ding" sound with multiple harmonics
+                    const freq1 = 800 * Math.exp(-t * 3); // Main tone, fading
+                    const freq2 = 1200 * Math.exp(-t * 4); // Higher harmonic
+                    const freq3 = 600 * Math.exp(-t * 2); // Lower harmonic
+                    
+                    let sample = 0;
+                    sample += Math.sin(2 * Math.PI * freq1 * t) * 0.4;
+                    sample += Math.sin(2 * Math.PI * freq2 * t) * 0.2;
+                    sample += Math.sin(2 * Math.PI * freq3 * t) * 0.3;
+                    
+                    // Apply envelope for smooth attack/decay
+                    const envelope = Math.exp(-t * 4) * (1 - Math.exp(-t * 20));
+                    sample *= envelope;
+                    
+                    // Add a tiny bit of randomness for texture
+                    sample += (Math.random() - 0.5) * 0.02;
+                    
+                    data[i] = sample * 0.3; // Overall volume
+                }
+
+                return buffer;
+            }
+
+            audioBufferToBlob(audioBuffer) {
+                const numberOfChannels = audioBuffer.numberOfChannels;
+                const length = audioBuffer.length * numberOfChannels * 2;
+                const buffer = new ArrayBuffer(44 + length);
+                const view = new DataView(buffer);
+                
+                // WAV header
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + length, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, numberOfChannels, true);
+                view.setUint32(24, audioBuffer.sampleRate, true);
+                view.setUint32(28, audioBuffer.sampleRate * 2, true);
+                view.setUint16(32, numberOfChannels * 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, length, true);
+                
+                // Audio data
+                let offset = 44;
+                for (let i = 0; i < audioBuffer.length; i++) {
+                    for (let channel = 0; channel < numberOfChannels; channel++) {
+                        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
+                        view.setInt16(offset, sample * 0x7FFF, true);
+                        offset += 2;
+                    }
+                }
+                
+                return new Blob([buffer], { type: 'audio/wav' });
+            }
+
+            playSound() {
+                if (!this.soundEnabled) return;
+                
+                try {
+                    const audio = this.audioPool[this.audioIndex];
+                    this.audioIndex = (this.audioIndex + 1) % this.audioPool.length;
+                    
+                    // Reset and play
+                    audio.currentTime = 0;
+                    audio.volume = this.soundVolume;
+                    audio.play().catch(err => {
+                        console.log('Audio play failed (browser policy):', err);
+                    });
+                } catch (error) {
+                    console.log('Sound generation error:', error);
+                }
+            }
+
+            setupSocketEvents() {
+                this.socket.on('connect', () => {
+                    console.log('Connected to server');
+                    this.updateStatus('connected', 'Connected');
+                    // Start listening when connected
+                    this.socket.emit('startListening');
+                });
+
+                this.socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    this.updateStatus('disconnected', 'Disconnected');
+                });
+
+                this.socket.on('countUpdate', (count) => {
+                    this.updateCounter(count);
+                });
+
+                this.socket.on('soundSettings', (settings) => {
+                    if (settings.enabled !== undefined) {
+                        this.soundEnabled = settings.enabled;
+                        console.log('Sound', settings.enabled ? 'enabled' : 'disabled');
+                    }
+                    if (settings.volume !== undefined) {
+                        this.soundVolume = settings.volume;
+                        // Update all audio instances
+                        this.audioPool.forEach(audio => {
+                            audio.volume = this.soundVolume;
+                        });
+                        console.log('Volume set to', Math.round(settings.volume * 100) + '%');
+                    }
+                });
+
+                this.socket.on('testSound', () => {
+                    console.log('Playing test sound...');
+                    this.playSound();
+                });
+
+                // Show listening status
+                this.socket.on('connect', () => {
+                    setTimeout(() => {
+                        this.updateStatus('listening', 'Listening...');
+                    }, 1000);
+                });
+            }
+
+            updateStatus(className, text) {
+                this.status.className = `connection-status ${className}`;
+                this.status.textContent = text;
+            }
+
+            updateCounter(newCount) {
+                const oldCount = this.currentCount;
+                this.currentCount = newCount;
+                
+                // Play sound and animate jar if count increased
+                if (newCount > oldCount && oldCount >= 0) {
+                    this.playSound();
+                    
+                    // Add coin drop animation to jar
+                    const jar = document.querySelector('.jar');
+                    jar.classList.add('coin-drop');
+                    setTimeout(() => {
+                        jar.classList.remove('coin-drop');
+                    }, 600);
+                }
+                
+                // Update counter with animation
+                this.counter.classList.add('updated');
+                this.counter.textContent = newCount;
+                
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    this.counter.classList.remove('updated');
+                }, 600);
+
+                // Update jar fill level (max height of 80px)
+                const maxHeight = 75;
+                const fillPercentage = Math.min(newCount / 50, 1); // Fill completely at 50 swears
+                const fillHeight = fillPercentage * maxHeight;
+                this.jarContents.style.height = `${fillHeight}px`;
+
+                // Log for debugging
+                if (newCount > oldCount) {
+                    console.log(`Swear count updated: ${oldCount} → ${newCount} 🔊`);
+                }
+            }
+        }
+
+        // Initialize the overlay when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SwearJarOverlay();
+        });
+
+        // Handle OBS scene changes - restart connection if needed
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                console.log('Overlay became visible, ensuring connection...');
+                // The socket.io client will automatically reconnect if needed
+            }
+        });
+    </script>
+</body>
+</html>
