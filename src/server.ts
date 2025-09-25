@@ -1,7 +1,11 @@
+import dotenv from 'dotenv'
+dotenv.config()
+
 import express from 'express'
 import { createServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 import speech from '@google-cloud/speech'
+const { v1p1beta1 } = speech
 // @ts-ignore
 const { record } = require('node-record-lpcm16')
 import path from 'path'
@@ -23,13 +27,25 @@ class SwearJarService {
         },
     })
 
-    private speechClient = new speech.SpeechClient()
+    private speechClient = new v1p1beta1.SpeechClient()
     private swearCount = 0
     private isListening = false
     private recentTranscripts = new Set<string>()
+
+    // Infinite streaming properties
     private currentRecognizeStream: any = null
     private currentRecording: any = null
-    private restartTimeout: NodeJS.Timeout | null = null
+    private streamingLimit = 290000 // 4 minutes 50 seconds (just under 5 min limit)
+    private restartCounter = 0
+    private audioInput: Buffer[] = []
+    private lastAudioInput: Buffer[] = []
+    private resultEndTime = 0
+    private isFinalEndTime = 0
+    private finalRequestEndTime = 0
+    private newStream = true
+    private bridgingOffset = 0
+    private lastTranscriptWasFinal = false
+    private streamStartTime = 0
 
     private config: SwearJarConfig = {
         predefinedCurseWords: [
@@ -196,6 +212,12 @@ class SwearJarService {
                 this.stopSpeechRecognition()
             })
 
+            socket.on('themeUpdate', (theme) => {
+                // Broadcast theme update to all connected clients
+                this.io.emit('themeUpdate', theme)
+                console.log(`🎨 Theme updated: ${theme.primaryColor} → ${theme.secondaryColor}`)
+            })
+
             socket.on('disconnect', () => {
                 console.log('Browser source disconnected')
             })
@@ -205,118 +227,146 @@ class SwearJarService {
     private async startSpeechRecognition() {
         if (this.isListening) return
 
-        console.log('🎤 Starting speech recognition...')
+        console.log('🎤 Starting infinite speech recognition...')
         this.isListening = true
+        this.restartCounter = 0
+        this.audioInput = []
+        this.lastAudioInput = []
+        this.resultEndTime = 0
+        this.isFinalEndTime = 0
+        this.finalRequestEndTime = 0
+        this.newStream = true
+        this.bridgingOffset = 0
+        this.lastTranscriptWasFinal = false
 
-        if (this.restartTimeout) {
-            clearTimeout(this.restartTimeout)
-            this.restartTimeout = null
+        this.startStream()
+    }
+
+    private startStream() {
+        // Clear current audioInput
+        this.audioInput = []
+        this.streamStartTime = Date.now()
+        
+        const config = {
+            encoding: 'LINEAR16' as const,
+            sampleRateHertz: 16000,
+            languageCode: 'en-US',
+            enableAutomaticPunctuation: false,
+            model: 'latest_long',
+            enableWordTimeOffsets: false,
+            enableWordConfidence: true,
+            maxAlternatives: 1,
         }
 
         const request = {
-            config: {
-                encoding: 'LINEAR16' as const,
-                sampleRateHertz: 16000,
-                languageCode: 'en-US',
-                enableAutomaticPunctuation: false,
-                model: 'command_and_search', // Better for continuous listening
-            },
+            config,
             interimResults: true,
             singleUtterance: false,
         }
 
-        try {
-            if (this.currentRecognizeStream) {
-                this.currentRecognizeStream.removeAllListeners()
-                this.currentRecognizeStream.end()
-                this.currentRecognizeStream = null
+        console.log(`🟢 Creating infinite stream #${this.restartCounter + 1} at ${new Date().toLocaleTimeString()}`)
+
+        // Initiate (Reinitiate) a recognize stream
+        this.currentRecognizeStream = this.speechClient
+            .streamingRecognize(request)
+            .on('error', (err: any) => {
+                console.error('❌ Speech stream error:', err.message)
+                if (err.code === 11) {
+                    // Resource exhausted - restart stream
+                    this.restartStream()
+                } else if (
+                    err.message.includes('credentials') ||
+                    err.message.includes('Could not load the default credentials')
+                ) {
+                    console.error('🚨 CREDENTIALS: Check GOOGLE_APPLICATION_CREDENTIALS environment variable')
+                    console.log('⏸️ Stopping due to credential issues')
+                    this.isListening = false
+                    return
+                } else {
+                    console.error('API request error:', err)
+                    this.restartStream()
+                }
+            })
+            .on('data', (stream: any) => this.speechCallback(stream))
+
+        // Restart stream when streamingLimit expires
+        setTimeout(() => {
+            if (this.isListening && this.currentRecognizeStream) {
+                console.log(`⏰ Stream limit reached (${this.streamingLimit/1000}s), restarting...`)
+                this.restartStream()
             }
+        }, this.streamingLimit)
 
-            const streamStartTime = Date.now()
-            console.log(
-                `🟢 Creating new recognition stream at ${new Date().toLocaleTimeString()}`
-            )
-
-            this.currentRecognizeStream = this.speechClient
-                .streamingRecognize(request)
-                .on('error', (err: any) => {
-                    console.error(
-                        `❌ Speech error after ${
-                            Date.now() - streamStartTime
-                        }ms:`,
-                        err.message
-                    )
-                    if (
-                        err.message.includes('billing') ||
-                        err.message.includes('quota')
-                    ) {
-                        console.error(
-                            '🚨 BILLING/QUOTA ISSUE: Enable billing in Google Cloud Console!'
-                        )
-                    }
-                    this.restartRecognition(2000)
-                })
-                .on('data', (data: any) => {
-                    if (data.results[0] && data.results[0].alternatives[0]) {
-                        const transcript =
-                            data.results[0].alternatives[0].transcript
-                                .toLowerCase()
-                                .trim()
-                        const confidence =
-                            data.results[0].alternatives[0].confidence || 0
-                        const streamAge = Date.now() - streamStartTime
-
-                        console.log(
-                            `👂 [${Math.round(
-                                streamAge / 1000
-                            )}s] "${transcript}" (conf: ${confidence.toFixed(
-                                2
-                            )}, final: ${data.results[0].isFinal})`
-                        )
-
-                        if (
-                            transcript &&
-                            (data.results[0].isFinal || confidence > 0.7)
-                        ) {
-                            this.checkForCurseWords(
-                                transcript,
-                                data.results[0].isFinal
-                            )
-                        }
-                    } else {
-                        console.log(
-                            '📡 Received data but no transcript results'
-                        )
-                    }
-                })
-                .on('end', () => {
-                    const streamDuration = Date.now() - streamStartTime
-                    console.log(
-                        `🔚 Stream ended after ${Math.round(
-                            streamDuration / 1000
-                        )}s - restarting`
-                    )
-                    this.restartRecognition(500)
-                })
-                .on('close', () => {
-                    const streamDuration = Date.now() - streamStartTime
-                    console.log(
-                        `🔒 Stream closed after ${Math.round(
-                            streamDuration / 1000
-                        )}s`
-                    )
-                })
-
+        // Start recording if not already started
+        if (!this.currentRecording) {
             this.startRecording()
+        }
+    }
 
-            console.log('✅ Speech recognition active - AUTO-RESTART every 45s')
-            this.schedulePeriodicRestart(45 * 1000)
-        } catch (error: any) {
-            console.error(
-                '❌ Failed to start speech recognition:',
-                error.message
-            )
-            this.restartRecognition(2000)
+    private speechCallback(stream: any) {
+        if (!stream.results || !stream.results[0] || !stream.results[0].alternatives || !stream.results[0].alternatives[0]) {
+            return
+        }
+
+        // Convert API result end time from seconds + nanoseconds to milliseconds
+        this.resultEndTime =
+            stream.results[0].resultEndTime.seconds * 1000 +
+            Math.round(stream.results[0].resultEndTime.nanos / 1000000)
+
+        // Calculate correct time based on offset from audio sent twice
+        const correctedTime =
+            this.resultEndTime - this.bridgingOffset + this.streamingLimit * this.restartCounter
+
+        const transcript = stream.results[0].alternatives[0].transcript.toLowerCase().trim()
+        const confidence = stream.results[0].alternatives[0].confidence || 0
+        const streamAge = Date.now() - this.streamStartTime
+
+        if (stream.results[0].isFinal) {
+            console.log(`👂 [${Math.round(streamAge / 1000)}s] "${transcript}" (conf: ${confidence.toFixed(2)}, final: true)`)
+
+            this.isFinalEndTime = this.resultEndTime
+            this.lastTranscriptWasFinal = true
+
+            // Process final transcript for curse words
+            if (transcript) {
+                this.checkForCurseWords(transcript, true)
+            }
+        } else {
+            // Process interim results for better responsiveness
+            if (transcript && confidence > 0.5) {
+                this.checkForCurseWords(transcript, false)
+            }
+            this.lastTranscriptWasFinal = false
+        }
+    }
+
+    private restartStream() {
+        if (this.currentRecognizeStream) {
+            this.currentRecognizeStream.end()
+            this.currentRecognizeStream.removeListener('data', this.speechCallback)
+            this.currentRecognizeStream = null
+        }
+
+        if (this.resultEndTime > 0) {
+            this.finalRequestEndTime = this.isFinalEndTime
+        }
+        this.resultEndTime = 0
+
+        this.lastAudioInput = []
+        this.lastAudioInput = [...this.audioInput]
+
+        this.restartCounter++
+
+        if (!this.lastTranscriptWasFinal) {
+            console.log('🔄 Mid-sentence restart detected')
+        }
+        console.log(`🔄 Stream restart #${this.restartCounter} (${this.streamingLimit * this.restartCounter / 1000}s total)`)
+
+        this.newStream = true
+
+        // Only restart if still listening
+        if (this.isListening) {
+            this.startStream()
         }
     }
 
@@ -338,10 +388,10 @@ class SwearJarService {
 
             this.currentRecording = record({
                 sampleRateHertz: 16000,
-                threshold: 0.1,
-                verbose: false,
+                threshold: 0,
+                silence: 1000,
+                keepSilence: true,
                 recordProgram: recordProgram,
-                silence: '0.5',
             })
 
             if (
@@ -358,76 +408,64 @@ class SwearJarService {
             recordingStream
                 .on('error', (err: any) => {
                     console.error('🎤 Recording stream error:', err.message)
-                    this.restartRecognition(3000)
+                    // Only restart if we're still supposed to be listening
+                    if (this.isListening) {
+                        this.restartStream()
+                    }
                 })
-                .pipe(this.currentRecognizeStream)
+                .on('data', (chunk: Buffer) => {
+                    // Implement bridging logic for seamless transitions
+                    if (this.newStream && this.lastAudioInput.length !== 0) {
+                        // Approximate math to calculate time of chunks
+                        const chunkTime = this.streamingLimit / this.lastAudioInput.length
+                        if (chunkTime !== 0) {
+                            if (this.bridgingOffset < 0) {
+                                this.bridgingOffset = 0
+                            }
+                            if (this.bridgingOffset > this.finalRequestEndTime) {
+                                this.bridgingOffset = this.finalRequestEndTime
+                            }
+                            const chunksFromMS = Math.floor(
+                                (this.finalRequestEndTime - this.bridgingOffset) / chunkTime
+                            )
+                            this.bridgingOffset = Math.floor(
+                                (this.lastAudioInput.length - chunksFromMS) * chunkTime
+                            )
 
-            console.log('🎙️ Audio recording started')
+                            // Send bridging audio from previous stream
+                            for (let i = chunksFromMS; i < this.lastAudioInput.length; i++) {
+                                if (this.currentRecognizeStream) {
+                                    this.currentRecognizeStream.write(this.lastAudioInput[i])
+                                }
+                            }
+                        }
+                        this.newStream = false
+                    }
+
+                    // Store audio data for potential bridging
+                    this.audioInput.push(chunk)
+
+                    // Send current audio to recognition stream
+                    if (this.currentRecognizeStream) {
+                        this.currentRecognizeStream.write(chunk)
+                    }
+                })
+
+            console.log('🎙️ Audio recording started with infinite streaming')
         } catch (error: any) {
             console.error('❌ Failed to start recording:', error.message)
             throw error
         }
     }
 
-    private schedulePeriodicRestart(intervalMs: number = 45000) {
-        if (this.restartTimeout) {
-            clearTimeout(this.restartTimeout)
-            this.restartTimeout = null
-        }
-
-        this.restartTimeout = setTimeout(() => {
-            console.log(
-                `⏰ Scheduled restart after ${
-                    intervalMs / 1000
-                }s to prevent timeout...`
-            )
-            this.restartRecognition(300)
-        }, intervalMs)
-    }
-
-    private restartRecognition(delay: number = 500) {
-        console.log(`🔄 Restarting in ${delay}ms...`)
-
-        if (this.restartTimeout) {
-            clearTimeout(this.restartTimeout)
-            this.restartTimeout = null
-        }
-
-        if (this.currentRecognizeStream) {
-            try {
-                this.currentRecognizeStream.removeAllListeners()
-                this.currentRecognizeStream.destroy()
-            } catch (err) {
-                // Ignore cleanup errors
-            }
-            this.currentRecognizeStream = null
-        }
-
-        if (this.currentRecording) {
-            try {
-                if (this.currentRecording.stop) {
-                    this.currentRecording.stop()
-                }
-            } catch (err) {
-                // Ignore cleanup errors
-            }
-            this.currentRecording = null
-        }
-
-        this.isListening = false
-
-        setTimeout(() => {
-            this.startSpeechRecognition()
-        }, delay)
-    }
 
     private stopSpeechRecognition() {
         console.log('🛑 Stopping speech recognition...')
         this.isListening = false
 
-        if (this.restartTimeout) {
-            clearTimeout(this.restartTimeout)
-            this.restartTimeout = null
+        // Clear stream timeout
+        if (this.streamingLimit) {
+            clearTimeout(this.streamingLimit)
         }
 
         if (this.currentRecognizeStream) {
@@ -450,6 +488,14 @@ class SwearJarService {
             }
             this.currentRecording = null
         }
+
+        // Clear audio buffers
+        this.audioInput = []
+        this.lastAudioInput = []
+        
+        // Reset timing variables
+        this.bridgingOffset = 0
+        this.finalRequestEndTime = 0
     }
 
     private checkForCurseWords(transcript: string, isFinal: boolean = false) {

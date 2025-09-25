@@ -12,7 +12,7 @@ A real-time speech recognition overlay that detects curse words while streaming 
 -   🎮 **OBS Browser Source** ready
 -   📱 **Web-based control panel** for management
 -   💾 **Persistent counting** - keeps track between streams
--   🔄 **Auto-restart system** - maintains continuous listening
+-   🔄 **Smart reconnection** - balanced approach with 2-minute restarts for optimal accuracy
 
 ## 📋 Prerequisites
 
@@ -70,18 +70,16 @@ npm install
     - Download the JSON key file
     - Save as `google-credentials.json` in your project root
 
-### 4. Set Environment Variable
+### 4. Configure Environment Variables
+
+The project uses a `.env` file for environment variables. Create one in your project root:
 
 ```bash
-# Windows (Command Prompt)
-set GOOGLE_APPLICATION_CREDENTIALS=google-credentials.json
-
-# Windows (PowerShell)
-$env:GOOGLE_APPLICATION_CREDENTIALS="google-credentials.json"
-
-# macOS/Linux
-export GOOGLE_APPLICATION_CREDENTIALS=google-credentials.json
+# Create .env file (this is done automatically during setup)
+echo 'GOOGLE_APPLICATION_CREDENTIALS=google-credentials.json' > .env
 ```
+
+**Note:** The `.env` file is already created for you and excluded from git for security.
 
 ### 5. Test Audio Setup
 
@@ -133,7 +131,7 @@ You should see:
 🧪 Testing Google Cloud Speech-to-Text connection...
 ✅ Google Cloud connection successful
 🎤 Starting speech recognition...
-✅ Speech recognition active - AUTO-RESTART every 45s
+✅ Speech recognition active - smart restart every 2 minutes
 Swear Jar server running on http://localhost:3000
 Browser Source URL: http://localhost:3000/overlay.html
 Control Panel: http://localhost:3000/control.html
@@ -245,6 +243,16 @@ _Much cheaper than missing donations due to excessive swearing! 😄_
 4. **Adjust volume** so it doesn't overpower your commentary
 5. **Position overlay** where viewers can easily see it
 
+## ✨ Recent Improvements
+
+### v1.1.0 - Infinite Speech Recognition
+- **Infinite streaming:** Implements Google's v1p1beta1 API with seamless 4:50 minute stream cycles to overcome 5-minute API limits
+- **Audio bridging logic:** No audio loss during stream transitions with intelligent buffering
+- **Enhanced speech model:** Uses `latest_long` model optimized for continuous speech
+- **Lower confidence threshold:** Improved responsiveness with 50% confidence threshold (vs 70%)
+- **Better error handling:** Graceful handling of credential and network issues
+- **Environment variables:** Uses `.env` file for easier credential management
+
 ## 🔧 Advanced Configuration
 
 ### Modify Curse Words
@@ -263,9 +271,11 @@ predefinedCurseWords: ['your', 'custom', 'words', 'here']
 
 ### Performance Tuning
 
--   **Restart interval:** Currently 45 seconds (adjustable in code)
--   **Confidence threshold:** 70% for interim results
+-   **Infinite streaming:** Seamless 4:50 minute stream cycles with audio bridging for uninterrupted recognition
+-   **Speech model:** `latest_long` optimized for continuous speech recognition
+-   **Confidence threshold:** 50% for better responsiveness to natural speech
 -   **Audio quality:** 16kHz sample rate for optimal recognition
+-   **Word confidence:** Enabled for better accuracy scoring
 
 ## 📝 License
 
