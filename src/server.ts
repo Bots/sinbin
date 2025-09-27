@@ -11,11 +11,11 @@ const { record } = require('node-record-lpcm16')
 import path from 'path'
 import fs from 'fs'
 
-interface SwearJarConfig {
-    predefinedCurseWords: string[]
-    customCurseWords: string[]
-    swearCount: number
-}
+// Database and enhanced types
+import { Database } from './database/database'
+import { SwearJarConfig } from './types/enhanced-types'
+import { ChatMonitor } from './services/chat-monitor'
+import multer from 'multer'
 
 class SwearJarService {
     private app = express()
@@ -32,6 +32,19 @@ class SwearJarService {
     private isListening = false
     private recentTranscripts = new Set<string>()
 
+    // Database
+    private database: Database
+
+    // Chat monitoring
+    private chatMonitor: ChatMonitor
+
+    // Current session
+    private currentSessionId: number | null = null
+
+    // Auto-reset timer
+    private autoResetTimer: NodeJS.Timeout | null = null
+    private lastPenaltyTime = 0
+
     // Infinite streaming properties
     private currentRecognizeStream: any = null
     private currentRecording: any = null
@@ -47,42 +60,174 @@ class SwearJarService {
     private lastTranscriptWasFinal = false
     private streamStartTime = 0
 
+    // Legacy config for backward compatibility during migration
     private config: SwearJarConfig = {
         predefinedCurseWords: [
-            'fuck',
-            'shit',
-            'damn',
-            'hell',
-            'bitch',
-            'ass',
-            'asshole',
-            'bastard',
-            'crap',
-            'piss',
-            'cock',
-            'dick',
-            'pussy',
-            'tits',
-            'goddamn',
-            'motherfucker',
-            'bullshit',
-            'dammit',
-            'fuckin',
-            'fucking',
-            'shitty',
-            'bitchy',
-            'dickhead',
-            'douchebag',
+            'fuck', 'shit', 'damn', 'hell', 'bitch', 'ass', 'asshole', 'bastard',
+            'crap', 'piss', 'cock', 'dick', 'pussy', 'tits', 'goddamn',
+            'motherfucker', 'bullshit', 'dammit', 'fuckin', 'fucking',
+            'shitty', 'bitchy', 'dickhead', 'douchebag'
         ],
         customCurseWords: [],
-        swearCount: 0,
+        swearCount: 0
     }
 
     constructor() {
+        this.database = new Database()
+        this.chatMonitor = new ChatMonitor(this.database)
         this.setupExpress()
         this.setupWebSocket()
-        this.loadConfig()
+        this.initializeDatabase()
         this.testGoogleCloudConnection()
+    }
+
+    private async initializeDatabase() {
+        try {
+            await this.database.initialize()
+            
+            // Check if we need to migrate from JSON config
+            const legacyConfigExists = fs.existsSync('swear-jar-config.json')
+            if (legacyConfigExists) {
+                console.log('Found legacy JSON config, migrating to database...')
+                this.loadLegacyConfig()
+                await this.database.migrateFromJSON(this.config)
+                
+                // Backup the old config and remove it
+                fs.renameSync('swear-jar-config.json', 'swear-jar-config.json.backup')
+                console.log('Legacy config backed up as swear-jar-config.json.backup')
+            }
+
+            // Load current penalty count from database
+            await this.loadCurrentCount()
+
+            // Start or resume session
+            await this.startSession()
+
+            // Load custom words from database
+            await this.loadCustomWords()
+
+            // Start auto-reset timer if enabled
+            await this.startAutoResetTimer()
+
+            // Initialize chat monitor if enabled
+            await this.initializeChatMonitor()
+
+            console.log('Database initialization completed')
+        } catch (error) {
+            console.error('Database initialization failed:', error)
+            throw error
+        }
+    }
+
+    private async loadCurrentCount() {
+        try {
+            const session = await this.database.getActiveSession()
+            if (session) {
+                this.swearCount = session.total_penalties
+                this.currentSessionId = session.id ?? null
+            } else {
+                this.swearCount = 0
+            }
+        } catch (error) {
+            console.error('Error loading current count:', error)
+            this.swearCount = 0
+        }
+    }
+
+    private async loadCustomWords() {
+        try {
+            const customWordsJson = await this.database.getSetting('custom_curse_words')
+            if (customWordsJson) {
+                this.config.customCurseWords = JSON.parse(customWordsJson)
+            }
+        } catch (error) {
+            console.error('Error loading custom words:', error)
+            this.config.customCurseWords = []
+        }
+    }
+
+    private async startSession() {
+        try {
+            const activeSession = await this.database.getActiveSession()
+            if (!activeSession) {
+                this.currentSessionId = await this.database.createSession()
+                console.log(`Started new session: ${this.currentSessionId}`)
+            } else {
+                this.currentSessionId = activeSession.id ?? null
+                console.log(`Resumed session: ${this.currentSessionId}`)
+            }
+        } catch (error) {
+            console.error('Error starting session:', error)
+        }
+    }
+
+    private async startAutoResetTimer() {
+        try {
+            const enabled = await this.database.getSetting('auto_reset_enabled')
+            const duration = await this.database.getSetting('auto_reset_duration')
+            
+            if (enabled === 'true' && duration) {
+                const durationMs = parseInt(duration) * 60 * 1000
+                this.scheduleAutoReset(durationMs)
+                console.log(`Auto-reset enabled: ${duration} minutes`)
+            }
+        } catch (error) {
+            console.error('Error starting auto-reset timer:', error)
+        }
+    }
+
+    private scheduleAutoReset(durationMs: number) {
+        if (this.autoResetTimer) {
+            clearTimeout(this.autoResetTimer)
+        }
+
+        this.autoResetTimer = setTimeout(async () => {
+            const timeSinceLastPenalty = Date.now() - this.lastPenaltyTime
+            if (timeSinceLastPenalty >= durationMs) {
+                await this.resetCounter(true)
+                this.io.emit('autoResetTriggered', { resetTime: Date.now() })
+                console.log('Auto-reset triggered after clean period')
+            }
+
+            // Reschedule
+            this.scheduleAutoReset(durationMs)
+        }, durationMs)
+    }
+
+    private async initializeChatMonitor() {
+        try {
+            const chatEnabled = await this.database.getSetting('chat_enabled')
+            if (chatEnabled === 'true') {
+                const channel = await this.database.getSetting('chat_channel')
+                const username = await this.database.getSetting('chat_username')
+                const oauth = await this.database.getSetting('chat_oauth')
+
+                if (channel) {
+                    await this.chatMonitor.initialize(channel, username || undefined, oauth || undefined)
+                    await this.chatMonitor.updateSessionId(this.currentSessionId!)
+                    console.log(`Chat monitoring enabled for channel: ${channel}`)
+                } else {
+                    console.log('Chat enabled but no channel specified')
+                }
+            } else {
+                console.log('Chat monitoring disabled')
+            }
+        } catch (error) {
+            console.error('Error initializing chat monitor:', error)
+        }
+    }
+
+    private loadLegacyConfig() {
+        try {
+            if (fs.existsSync('swear-jar-config.json')) {
+                const configData = fs.readFileSync('swear-jar-config.json', 'utf8')
+                const savedConfig = JSON.parse(configData)
+                this.config = { ...this.config, ...savedConfig }
+                console.log(`Loaded legacy config. Swear count: ${this.config.swearCount}`)
+            }
+        } catch (error) {
+            console.error('Error loading legacy config:', error)
+        }
     }
 
     private async testGoogleCloudConnection() {
@@ -115,6 +260,42 @@ class SwearJarService {
         this.app.use(express.json())
         this.app.use(express.static('public'))
 
+        // Ensure sounds directory exists
+        const soundsDir = path.join(process.cwd(), 'public', 'sounds')
+        if (!fs.existsSync(soundsDir)) {
+            fs.mkdirSync(soundsDir, { recursive: true })
+        }
+
+        // Serve sound files
+        this.app.use('/sounds', express.static(soundsDir))
+
+        // Configure multer for file uploads
+        const storage = multer.diskStorage({
+            destination: function (req, file, cb) {
+                cb(null, soundsDir)
+            },
+            filename: function (req, file, cb) {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+                const extension = path.extname(file.originalname)
+                cb(null, file.fieldname + '-' + uniqueSuffix + extension)
+            }
+        })
+
+        const upload = multer({
+            storage: storage,
+            limits: {
+                fileSize: 5 * 1024 * 1024 // 5MB limit
+            },
+            fileFilter: function (req, file, cb) {
+                // Accept only audio files
+                if (file.mimetype.startsWith('audio/')) {
+                    cb(null, true)
+                } else {
+                    cb(new Error('Only audio files are allowed'))
+                }
+            }
+        })
+
         // Root redirect
         this.app.get('/', (req, res) => {
             res.redirect('/control.html')
@@ -125,25 +306,30 @@ class SwearJarService {
             res.json({ count: this.swearCount })
         })
 
-        this.app.post('/api/reset', (req, res) => {
-            this.swearCount = 0
-            this.saveConfig()
-            this.io.emit('countUpdate', this.swearCount)
-            res.json({ success: true, count: this.swearCount })
+        this.app.post('/api/reset', async (req, res) => {
+            try {
+                await this.resetCounter()
+                res.json({ success: true, count: this.swearCount })
+            } catch (error) {
+                console.error('Error resetting counter:', error)
+                res.status(500).json({ error: 'Failed to reset counter' })
+            }
         })
 
-        this.app.post('/api/add-word', (req, res) => {
+        this.app.post('/api/add-word', async (req, res) => {
             const { word } = req.body
-            if (
-                word &&
-                !this.config.customCurseWords.includes(word.toLowerCase())
-            ) {
-                this.config.customCurseWords.push(word.toLowerCase())
-                this.saveConfig()
-                res.json({
-                    success: true,
-                    customWords: this.config.customCurseWords,
-                })
+            if (word && !this.config.customCurseWords.includes(word.toLowerCase())) {
+                try {
+                    this.config.customCurseWords.push(word.toLowerCase())
+                    await this.database.setSetting('custom_curse_words', JSON.stringify(this.config.customCurseWords))
+                    res.json({
+                        success: true,
+                        customWords: this.config.customCurseWords,
+                    })
+                } catch (error) {
+                    console.error('Error adding word:', error)
+                    res.status(500).json({ error: 'Failed to add word' })
+                }
             } else {
                 res.status(400).json({
                     error: 'Word already exists or is invalid',
@@ -151,16 +337,21 @@ class SwearJarService {
             }
         })
 
-        this.app.delete('/api/remove-word/:word', (req, res) => {
+        this.app.delete('/api/remove-word/:word', async (req, res) => {
             const word = req.params.word.toLowerCase()
-            this.config.customCurseWords = this.config.customCurseWords.filter(
-                (w) => w !== word
-            )
-            this.saveConfig()
-            res.json({
-                success: true,
-                customWords: this.config.customCurseWords,
-            })
+            try {
+                this.config.customCurseWords = this.config.customCurseWords.filter(
+                    (w) => w !== word
+                )
+                await this.database.setSetting('custom_curse_words', JSON.stringify(this.config.customCurseWords))
+                res.json({
+                    success: true,
+                    customWords: this.config.customCurseWords,
+                })
+            } catch (error) {
+                console.error('Error removing word:', error)
+                res.status(500).json({ error: 'Failed to remove word' })
+            }
         })
 
         this.app.get('/api/words', (req, res) => {
@@ -168,6 +359,31 @@ class SwearJarService {
                 predefined: this.config.predefinedCurseWords,
                 custom: this.config.customCurseWords,
             })
+        })
+
+        this.app.get('/api/stats', async (req, res) => {
+            try {
+                const micCount = await this.database.getPenaltyCount('mic')
+                const chatCount = await this.database.getPenaltyCount('chat')
+                const session = await this.database.getActiveSession()
+                const topUsers = await this.database.getTopUsers(10)
+                const thresholds = await this.database.getThresholds()
+
+                res.json({
+                    penalties: {
+                        total: micCount + chatCount,
+                        mic: micCount,
+                        chat: chatCount,
+                        session: session?.total_penalties || 0
+                    },
+                    users: topUsers,
+                    session: session,
+                    thresholds: thresholds
+                })
+            } catch (error) {
+                console.error('Error getting stats:', error)
+                res.status(500).json({ error: 'Failed to get stats' })
+            }
         })
 
         this.app.post('/api/sound-settings', (req, res) => {
@@ -179,6 +395,189 @@ class SwearJarService {
         this.app.post('/api/test-sound', (req, res) => {
             this.io.emit('testSound')
             res.json({ success: true })
+        })
+
+        // New endpoints for enhanced features
+        this.app.get('/api/thresholds', async (req, res) => {
+            try {
+                const thresholds = await this.database.getThresholds()
+                res.json({ success: true, data: thresholds })
+            } catch (error) {
+                console.error('Error getting thresholds:', error)
+                res.status(500).json({ error: 'Failed to get thresholds' })
+            }
+        })
+
+        this.app.post('/api/settings', async (req, res) => {
+            try {
+                const { key, value } = req.body
+                await this.database.setSetting(key, value)
+                
+                // Handle special settings that need immediate action
+                if (key === 'auto_reset_enabled' || key === 'auto_reset_duration') {
+                    await this.startAutoResetTimer()
+                }
+                
+                res.json({ success: true })
+            } catch (error) {
+                console.error('Error saving setting:', error)
+                res.status(500).json({ error: 'Failed to save setting' })
+            }
+        })
+
+        this.app.get('/api/settings/:key', async (req, res) => {
+            try {
+                const value = await this.database.getSetting(req.params.key)
+                res.json({ success: true, data: value })
+            } catch (error) {
+                console.error('Error getting setting:', error)
+                res.status(500).json({ error: 'Failed to get setting' })
+            }
+        })
+
+        // Chat monitoring endpoints
+        this.app.post('/api/chat/connect', async (req, res) => {
+            try {
+                const { channel, username, oauth } = req.body
+
+                // Save settings
+                await this.database.setSetting('chat_enabled', 'true')
+                await this.database.setSetting('chat_channel', channel)
+                if (username) await this.database.setSetting('chat_username', username)
+                if (oauth) await this.database.setSetting('chat_oauth', oauth)
+
+                // Initialize chat monitor
+                await this.chatMonitor.initialize(channel, username, oauth)
+                await this.chatMonitor.updateSessionId(this.currentSessionId!)
+
+                res.json({ success: true, message: 'Chat monitoring started' })
+            } catch (error) {
+                console.error('Error connecting to chat:', error)
+                res.status(500).json({ error: 'Failed to connect to chat' })
+            }
+        })
+
+        this.app.post('/api/chat/disconnect', async (req, res) => {
+            try {
+                await this.chatMonitor.disconnect()
+                await this.database.setSetting('chat_enabled', 'false')
+                res.json({ success: true, message: 'Chat monitoring stopped' })
+            } catch (error) {
+                console.error('Error disconnecting from chat:', error)
+                res.status(500).json({ error: 'Failed to disconnect from chat' })
+            }
+        })
+
+        this.app.get('/api/chat/status', (req, res) => {
+            const status = this.chatMonitor.getConnectionStatus()
+            res.json({ success: true, data: status })
+        })
+
+        this.app.get('/api/chat/stats', async (req, res) => {
+            try {
+                const stats = await this.chatMonitor.getChatStats()
+                res.json({ success: true, data: stats })
+            } catch (error) {
+                console.error('Error getting chat stats:', error)
+                res.status(500).json({ error: 'Failed to get chat stats' })
+            }
+        })
+
+        this.app.get('/api/users', async (req, res) => {
+            try {
+                const limit = parseInt(req.query.limit as string) || 10
+                const users = await this.database.getTopUsers(limit)
+                res.json({ success: true, data: users })
+            } catch (error) {
+                console.error('Error getting users:', error)
+                res.status(500).json({ error: 'Failed to get users' })
+            }
+        })
+
+        // Sound upload and management endpoints
+        this.app.post('/api/sounds/upload', upload.single('soundFile'), async (req, res) => {
+            try {
+                if (!req.file) {
+                    res.status(400).json({ error: 'No file uploaded' })
+                    return
+                }
+
+                const { category = 'penalty', description = '' } = req.body
+
+                // Save sound file info to database
+                const soundData = {
+                    filename: req.file.filename,
+                    originalName: req.file.originalname,
+                    category: category,
+                    description: description,
+                    fileSize: req.file.size,
+                    uploadDate: new Date().toISOString(),
+                    url: `/sounds/${req.file.filename}`
+                }
+
+                // Store in database as JSON setting
+                const existingSounds = await this.database.getSetting('custom_sounds') || '[]'
+                const sounds = JSON.parse(existingSounds)
+                sounds.push(soundData)
+                await this.database.setSetting('custom_sounds', JSON.stringify(sounds))
+
+                res.json({
+                    success: true,
+                    data: soundData
+                })
+                return
+            } catch (error) {
+                console.error('Error uploading sound:', error)
+                res.status(500).json({ error: 'Failed to upload sound file' })
+                return
+            }
+        })
+
+        this.app.get('/api/sounds', async (req, res) => {
+            try {
+                const soundsJson = await this.database.getSetting('custom_sounds') || '[]'
+                const sounds = JSON.parse(soundsJson)
+                res.json({ success: true, data: sounds })
+            } catch (error) {
+                console.error('Error getting sounds:', error)
+                res.status(500).json({ error: 'Failed to get sounds' })
+            }
+        })
+
+        this.app.delete('/api/sounds/:filename', async (req, res) => {
+            try {
+                const filename = req.params.filename
+                const soundsDir = path.join(process.cwd(), 'public', 'sounds')
+                const filePath = path.join(soundsDir, filename)
+
+                // Remove from database
+                const existingSounds = await this.database.getSetting('custom_sounds') || '[]'
+                const sounds = JSON.parse(existingSounds)
+                const updatedSounds = sounds.filter((sound: any) => sound.filename !== filename)
+                await this.database.setSetting('custom_sounds', JSON.stringify(updatedSounds))
+
+                // Remove physical file
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath)
+                }
+
+                res.json({ success: true, message: 'Sound file deleted' })
+            } catch (error) {
+                console.error('Error deleting sound:', error)
+                res.status(500).json({ error: 'Failed to delete sound file' })
+            }
+        })
+
+        this.app.post('/api/sounds/play', (req, res) => {
+            const { filename, volume = 0.5 } = req.body
+
+            // Emit sound play event to connected clients
+            this.io.emit('soundPlay', {
+                file: `/sounds/${filename}`,
+                volume: volume
+            })
+
+            res.json({ success: true, message: 'Sound play triggered' })
         })
     }
 
@@ -507,7 +906,7 @@ class SwearJarService {
         this.finalRequestEndTime = 0
     }
 
-    private checkForCurseWords(transcript: string, isFinal: boolean = false) {
+    private async checkForCurseWords(transcript: string, isFinal: boolean = false) {
         const allCurseWords = [
             ...this.config.predefinedCurseWords,
             ...this.config.customCurseWords,
@@ -538,9 +937,7 @@ class SwearJarService {
         })
 
         if (foundCurses > 0) {
-            this.swearCount += foundCurses
-            this.saveConfig()
-            this.io.emit('countUpdate', this.swearCount)
+            await this.addPenalties(foundWords, 'mic')
 
             const wordList = foundWords.join(', ')
             const finalStatus = isFinal ? 'final' : 'interim'
@@ -548,45 +945,134 @@ class SwearJarService {
         }
     }
 
-    private loadConfig() {
+    private async addPenalties(words: string[], source: 'mic' | 'chat', username?: string) {
         try {
-            if (fs.existsSync('swear-jar-config.json')) {
-                const configData = fs.readFileSync(
-                    'swear-jar-config.json',
-                    'utf8'
-                )
-                const savedConfig = JSON.parse(configData)
-                this.config = { ...this.config, ...savedConfig }
-                this.swearCount = this.config.swearCount
-                console.log(
-                    `Loaded config. Current swear count: ${this.swearCount}`
-                )
+            for (const word of words) {
+                // Add to database
+                await this.database.addPenalty({
+                    word,
+                    source,
+                    username,
+                    ...(this.currentSessionId !== null ? { session_id: this.currentSessionId } : {})
+                })
+
+                this.swearCount++
+                this.lastPenaltyTime = Date.now()
+
+                // Emit penalty event with animation trigger
+                this.io.emit('penaltyDetected', {
+                    word,
+                    source,
+                    username,
+                    timestamp: Date.now(),
+                    sessionId: this.currentSessionId
+                })
+
+                // Trigger bin animation
+                this.io.emit('animationTrigger', {
+                    type: 'binShake',
+                    data: { word, intensity: 5 }
+                })
+            }
+
+            // Update session stats
+            if (this.currentSessionId) {
+                const session = await this.database.getActiveSession()
+                if (session) {
+                    await this.database.updateSession(this.currentSessionId, {
+                        total_penalties: session.total_penalties + words.length,
+                        mic_penalties: source === 'mic' ? session.mic_penalties + words.length : session.mic_penalties,
+                        chat_penalties: source === 'chat' ? session.chat_penalties + words.length : session.chat_penalties
+                    })
+                }
+            }
+
+            // Check thresholds
+            await this.checkThresholds()
+
+            // Emit count update
+            this.io.emit('countUpdate', this.swearCount)
+
+        } catch (error) {
+            console.error('Error adding penalties:', error)
+        }
+    }
+
+    private async checkThresholds() {
+        try {
+            const thresholds = await this.database.getThresholds()
+            const currentThreshold = thresholds
+                .filter(t => this.swearCount >= t.count)
+                .sort((a, b) => b.count - a.count)[0]
+
+            if (currentThreshold) {
+                this.io.emit('thresholdReached', currentThreshold)
             }
         } catch (error) {
-            console.error('Error loading config:', error)
+            console.error('Error checking thresholds:', error)
         }
     }
 
-    private saveConfig() {
+    private async resetCounter(isAutoReset: boolean = false) {
         try {
-            this.config.swearCount = this.swearCount
-            fs.writeFileSync(
-                'swear-jar-config.json',
-                JSON.stringify(this.config, null, 2)
-            )
+            this.swearCount = 0
+            
+            // End current session and start new one
+            if (this.currentSessionId) {
+                await this.database.updateSession(this.currentSessionId, {
+                    active: false,
+                    end_time: new Date().toISOString()
+                })
+            }
+
+            // Start new session
+            this.currentSessionId = await this.database.createSession()
+
+            this.io.emit('countUpdate', this.swearCount)
+            
+            if (!isAutoReset) {
+                console.log('Counter reset manually')
+            }
         } catch (error) {
-            console.error('Error saving config:', error)
+            console.error('Error resetting counter:', error)
+            throw error
         }
     }
 
-    public start(port: number = 3000) {
+    public async start(port: number = 3000) {
         this.server.listen(port, () => {
             console.log(`Swear Jar server running on http://localhost:${port}`)
-            console.log(
-                `Browser Source URL: http://localhost:${port}/overlay.html`
-            )
+            console.log(`Browser Source URL: http://localhost:${port}/overlay.html`)
             console.log(`Control Panel: http://localhost:${port}/control.html`)
         })
+    }
+
+    public async shutdown() {
+        console.log('Shutting down SinBin service...')
+
+        // Stop speech recognition
+        this.stopSpeechRecognition()
+
+        // Disconnect chat monitor
+        await this.chatMonitor.disconnect()
+
+        // Clear timers
+        if (this.autoResetTimer) {
+            clearTimeout(this.autoResetTimer)
+        }
+
+        // End current session
+        if (this.currentSessionId) {
+            await this.database.updateSession(this.currentSessionId, {
+                active: false,
+                end_time: new Date().toISOString()
+            })
+        }
+
+        // Close database
+        await this.database.close()
+
+        console.log('SinBin service shut down complete')
     }
 }
 

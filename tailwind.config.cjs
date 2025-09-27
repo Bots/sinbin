@@ -25,5 +25,15 @@ module.exports = {
       }
     }
   },
-  plugins: []
+  plugins: [require("daisyui")],
+  daisyui: {
+    themes: ["light", "dark", "synthwave", "cyberpunk"],
+    darkTheme: "dark",
+    base: true,
+    styled: true,
+    utils: true,
+    prefix: "",
+    logs: true,
+    themeRoot: ":root",
+  },
 }
