@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base CSS variables for runtime theming */
+:root{
+  --primary-color: #6b5cff;
+  --secondary-color: #5ec8a6;
+  --accent-color: #ffb86b;
+  --panel-bg: rgba(20,20,20,0.92);
+  --panel-border: rgba(255,255,255,0.06);
+  --muted-text: rgba(255,255,255,0.85);
+  --ticker-text-color: var(--muted-text);
+}
+
+/* Import overlay-specific custom CSS (kept small for pseudo-elements & keyframes) */
+@import "../../public/overlay.custom.css";

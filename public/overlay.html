@@ -1,504 +1,399 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>SinBin Overlay</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-purple: #bf00ff;
-            --neon-pink: #ff0080;
-            --dark-purple: #2d0033;
-            --gradient-primary: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-pink) 100%);
-            --gradient-secondary: linear-gradient(135deg, #1a001f 0%, #330040 100%);
-            --text-glow: 0 0 10px var(--neon-purple), 0 0 20px var(--neon-purple), 0 0 30px var(--neon-purple);
-            --box-glow: 0 0 20px rgba(191, 0, 255, 0.5), 0 0 40px rgba(191, 0, 255, 0.3);
+            /* Default theme colors */
+            --primary-color: #6366f1;
+            --secondary-color: #f472b6;
+
+            /* Element colors with alpha support */
+            --background-color: rgba(0, 0, 0, 0.8);
+            --bin-color: #ffffff;
+            --counter-color: #000000;
+            --status-color: #10b981;
+            --transcript-color: #ffffff;
+
+            /* Alpha values */
+            --background-alpha: 0.8;
+            --bin-alpha: 1;
+            --counter-alpha: 1;
+            --status-alpha: 1;
+            --transcript-alpha: 0.9;
+
+            /* Layout settings */
+            --layout-direction: column;
+            --transcript-position: after;
+            --overlay-gap: 20px;
+            --bin-size: 80px;
+            --status-size: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            margin: 0;
-            padding: 20px;
-            background: transparent;
-            font-family: 'Orbitron', monospace;
-            color: white;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
-            text-rendering: optimizeLegibility;
+            background: transparent;
+            height: 100vh;
+            width: 100vw;
         }
 
-        .sinbin-container {
+        .overlay-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: var(--layout-direction);
+            align-items: center;
+            justify-content: center;
+            gap: var(--overlay-gap);
+            padding: 20px;
+            background: var(--background-color);
+            transition: all 0.3s ease;
+        }
+
+        .overlay-container.no-background {
+            background: transparent;
+        }
+
+        .overlay-container.horizontal {
+            --layout-direction: row;
+            --overlay-gap: 30px;
+        }
+
+        .status-indicator {
+            width: var(--status-size);
+            height: var(--status-size);
+            border-radius: 50%;
+            background: var(--status-color);
+            opacity: var(--status-alpha);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(var(--status-color), 0.5);
+            order: 1;
+        }
+
+        .status-indicator.hidden {
+            display: none;
+        }
+
+        .trash-bin-container {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 25px;
-            animation: fadeIn 1s ease-in;
+            order: 2;
         }
 
-        .penalty-box {
-            width: 100px;
-            height: 120px;
-            background: var(--gradient-secondary);
-            border: 3px solid transparent;
-            background-clip: padding-box;
-            border-radius: 15px 15px 25px 25px;
-            position: relative;
-            box-shadow:
-                var(--box-glow),
-                inset 0 0 20px rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-        }
-
-        .penalty-box::before {
-            content: '';
-            position: absolute;
-            inset: -3px;
-            background: var(--gradient-primary);
-            border-radius: 18px 18px 28px 28px;
-            z-index: -1;
-            animation: borderGlow 2s ease-in-out infinite alternate;
-        }
-
-        .penalty-box::after {
-            content: '';
-            position: absolute;
-            top: -15px;
-            left: 15px;
-            right: 15px;
-            height: 20px;
-            background: var(--gradient-primary);
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(191, 0, 255, 0.7);
-        }
-
-        .penalty-contents {
-            position: absolute;
-            bottom: 8px;
-            left: 8px;
-            right: 8px;
-            background: var(--gradient-primary);
-            border-radius: 0 0 20px 20px;
-            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 0px;
-            box-shadow: 0 -10px 20px rgba(191, 0, 255, 0.5);
+        .trash-bin {
+            width: var(--bin-size);
+            height: var(--bin-size);
+            color: var(--bin-color);
+            opacity: var(--bin-alpha);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+            transition: all 0.3s ease;
         }
 
         .counter {
-            font-size: 48px;
-            font-weight: 900;
-            background: var(--gradient-primary);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: none;
-            filter: drop-shadow(0 0 10px var(--neon-purple));
-            animation: pulse 2s ease-in-out infinite;
-            letter-spacing: 2px;
-        }
-
-        .counter.updated {
-            animation: neonBounce 0.8s ease-out;
-        }
-
-        .label {
-            font-size: 22px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(16px, calc(var(--bin-size) * 0.25), 24px);
             font-weight: 700;
-            color: white;
-            margin-top: 10px;
-            text-shadow: var(--text-glow);
-            letter-spacing: 3px;
+            color: var(--counter-color);
+            opacity: var(--counter-alpha);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .transcript-container {
+            max-width: min(80vw, 600px);
+            overflow: hidden;
+            order: 3;
+        }
+
+        .transcript-container.hidden {
+            display: none;
+        }
+
+        .transcript-container.above {
+            order: 0;
+        }
+
+        .transcript-text {
+            color: var(--transcript-color);
+            opacity: var(--transcript-alpha);
+            font-size: 16px;
+            font-weight: 500;
             text-align: center;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
-        @keyframes neonBounce {
-            0% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 10px var(--neon-purple));
-            }
-            25% {
-                transform: scale(1.3);
-                filter: drop-shadow(0 0 20px var(--neon-purple));
-            }
-            50% {
-                transform: scale(1.1);
-                filter: drop-shadow(0 0 15px var(--neon-pink));
-            }
-            75% {
-                transform: scale(1.2);
-                filter: drop-shadow(0 0 25px var(--neon-purple));
-            }
-            100% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 10px var(--neon-purple));
-            }
+        /* Scrolling animation for long text */
+        .transcript-text.scrolling {
+            animation: scroll-text 10s linear infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                filter: drop-shadow(0 0 10px var(--neon-purple));
+        @keyframes scroll-text {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .overlay-container {
+                padding: 15px;
+                --overlay-gap: 15px;
+                --bin-size: 60px;
+                --status-size: 10px;
             }
-            50% {
-                filter: drop-shadow(0 0 20px var(--neon-pink));
+
+            .transcript-text {
+                font-size: 14px;
             }
-        }
-
-        @keyframes borderGlow {
-            0% {
-                opacity: 0.7;
-                transform: scale(1);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1.02);
-            }
-        }
-
-        @keyframes penaltyFill {
-            0% {
-                transform: translateY(10px) scale(1.2);
-                opacity: 0.8;
-                box-shadow: 0 -10px 20px rgba(191, 0, 255, 0.5);
-            }
-            50% {
-                transform: translateY(0px) scale(1.1);
-                opacity: 1;
-                box-shadow: 0 -15px 30px rgba(255, 0, 128, 0.7);
-            }
-            100% {
-                transform: translateY(0px) scale(1);
-                opacity: 1;
-                box-shadow: 0 -10px 20px rgba(191, 0, 255, 0.5);
-            }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .penalty-box.penalty-added {
-            animation: penaltyFill 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .connection-status {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 14px;
-            font-weight: 700;
-            padding: 8px 15px;
-            border-radius: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(191, 0, 255, 0.3);
-            letter-spacing: 1px;
-        }
-
-        .connected {
-            color: #00ff88;
-            text-shadow: 0 0 10px #00ff88;
-        }
-
-        .disconnected {
-            color: #ff4444;
-            text-shadow: 0 0 10px #ff4444;
-        }
-
-        .listening {
-            color: #ffaa00;
-            text-shadow: 0 0 10px #ffaa00;
-        }
-
-        /* Add some cyberpunk-style decorative elements */
-        .penalty-box::after {
-            content: '';
-            position: absolute;
-            top: -15px;
-            left: 15px;
-            right: 15px;
-            height: 20px;
-            background: var(--gradient-primary);
-            border-radius: 10px;
-            box-shadow:
-                0 0 15px rgba(191, 0, 255, 0.7),
-                inset 0 2px 0 rgba(255, 255, 255, 0.3);
-        }
-
-        .penalty-contents::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 1px;
         }
     </style>
 </head>
 <body>
-    <div class="connection-status" id="status">Connecting...</div>
+    <div class="overlay-container" id="overlayContainer">
+        <!-- Connection Status Dot -->
+        <div class="status-indicator" id="statusIndicator"></div>
 
-    <div class="sinbin-container">
-        <div class="penalty-box">
-            <div class="penalty-contents" id="penaltyContents"></div>
-        </div>
-        <div>
+        <!-- Trash Bin with Counter -->
+        <div class="trash-bin-container">
+            <svg class="trash-bin" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Minimalistic trash bin design -->
+                <defs>
+                    <linearGradient id="binGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:currentColor;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:currentColor;stop-opacity:0.8" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Bin body -->
+                <rect x="20" y="35" width="60" height="50" rx="8" fill="url(#binGradient)" stroke="currentColor" stroke-width="2"/>
+
+                <!-- Bin lid -->
+                <rect x="15" y="25" width="70" height="8" rx="4" fill="currentColor"/>
+
+                <!-- Handle -->
+                <rect x="40" y="15" width="20" height="6" rx="3" fill="currentColor"/>
+
+                <!-- Subtle details -->
+                <line x1="35" y1="45" x2="35" y2="70" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                <line x1="50" y1="45" x2="50" y2="70" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                <line x1="65" y1="45" x2="65" y2="70" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+            </svg>
+
             <div class="counter" id="counter">0</div>
-            <div class="label">SINBIN</div>
+        </div>
+
+        <!-- Transcript Display -->
+        <div class="transcript-container" id="transcriptContainer">
+            <div class="transcript-text" id="transcriptText">Listening for audio...</div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        class SinBinOverlay {
+        class MinimalOverlay {
             constructor() {
                 this.socket = io();
-                this.counter = document.getElementById('counter');
-                this.status = document.getElementById('status');
-                this.penaltyContents = document.getElementById('penaltyContents');
-                this.currentCount = 0;
-                this.soundEnabled = true;
-                this.soundVolume = 0.3;
-
-                this.setupSocketEvents();
-                this.setupAudio();
-            }
-
-            setupAudio() {
-                // Create multiple audio instances for rapid-fire curse detection
-                this.audioPool = [];
-                for (let i = 0; i < 5; i++) {
-                    const audio = new Audio();
-
-                    // Generate a futuristic "penalty" sound using Web Audio API
-                    this.generatePenaltySound().then(audioBuffer => {
-                        const blob = this.audioBufferToBlob(audioBuffer);
-                        audio.src = URL.createObjectURL(blob);
-                        audio.volume = this.soundVolume;
-                        audio.preload = 'auto';
-                    });
-
-                    this.audioPool.push(audio);
-                }
-                this.audioIndex = 0;
-            }
-
-            async generatePenaltySound() {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const sampleRate = audioContext.sampleRate;
-                const duration = 0.5; // 500ms sound
-                const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
-                const data = buffer.getChannelData(0);
-
-                for (let i = 0; i < buffer.length; i++) {
-                    const t = i / sampleRate;
-
-                    // Create a futuristic "penalty" sound with electronic tones
-                    const freq1 = 400 * Math.exp(-t * 2); // Deep tone
-                    const freq2 = 800 * Math.exp(-t * 3); // Mid tone
-                    const freq3 = 1200 * (1 - Math.exp(-t * 10)) * Math.exp(-t * 4); // High sweep
-
-                    let sample = 0;
-                    sample += Math.sin(2 * Math.PI * freq1 * t) * 0.4;
-                    sample += Math.sin(2 * Math.PI * freq2 * t) * 0.3;
-                    sample += Math.sin(2 * Math.PI * freq3 * t) * 0.2;
-
-                    // Add some digital distortion for cyberpunk feel
-                    if (t < 0.1) {
-                        sample += Math.sin(2 * Math.PI * 200 * t) * 0.1 * (1 - t * 10);
-                    }
-
-                    // Apply envelope for smooth attack/decay
-                    const envelope = Math.exp(-t * 3) * (1 - Math.exp(-t * 15));
-                    sample *= envelope;
-
-                    // Add some digital noise
-                    sample += (Math.random() - 0.5) * 0.03 * envelope;
-
-                    data[i] = sample * 0.4; // Overall volume
-                }
-
-                return buffer;
-            }
-
-            audioBufferToBlob(audioBuffer) {
-                const numberOfChannels = audioBuffer.numberOfChannels;
-                const length = audioBuffer.length * numberOfChannels * 2;
-                const buffer = new ArrayBuffer(44 + length);
-                const view = new DataView(buffer);
-
-                // WAV header
-                const writeString = (offset, string) => {
-                    for (let i = 0; i < string.length; i++) {
-                        view.setUint8(offset + i, string.charCodeAt(i));
-                    }
+                this.config = {
+                    layout: 'vertical',
+                    transcriptPosition: 'below',
+                    showBackground: true,
+                    showStatus: true,
+                    showTranscript: true
                 };
 
-                writeString(0, 'RIFF');
-                view.setUint32(4, 36 + length, true);
-                writeString(8, 'WAVE');
-                writeString(12, 'fmt ');
-                view.setUint32(16, 16, true);
-                view.setUint16(20, 1, true);
-                view.setUint16(22, numberOfChannels, true);
-                view.setUint32(24, audioBuffer.sampleRate, true);
-                view.setUint32(28, audioBuffer.sampleRate * 2, true);
-                view.setUint16(32, numberOfChannels * 2, true);
-                view.setUint16(34, 16, true);
-                writeString(36, 'data');
-                view.setUint32(40, length, true);
+                this.elements = {
+                    container: document.getElementById('overlayContainer'),
+                    status: document.getElementById('statusIndicator'),
+                    counter: document.getElementById('counter'),
+                    transcript: document.getElementById('transcriptText'),
+                    transcriptContainer: document.getElementById('transcriptContainer')
+                };
 
-                // Audio data
-                let offset = 44;
-                for (let i = 0; i < audioBuffer.length; i++) {
-                    for (let channel = 0; channel < numberOfChannels; channel++) {
-                        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
-                        view.setInt16(offset, sample * 0x7FFF, true);
-                        offset += 2;
-                    }
-                }
-
-                return new Blob([buffer], { type: 'audio/wav' });
-            }
-
-            playSound() {
-                if (!this.soundEnabled) return;
-
-                try {
-                    const audio = this.audioPool[this.audioIndex];
-                    this.audioIndex = (this.audioIndex + 1) % this.audioPool.length;
-
-                    // Reset and play
-                    audio.currentTime = 0;
-                    audio.volume = this.soundVolume;
-                    audio.play().catch(err => {
-                        console.log('Audio play failed (browser policy):', err);
-                    });
-                } catch (error) {
-                    console.log('Sound generation error:', error);
-                }
+                this.setupSocketEvents();
+                this.applyDefaultTheme();
             }
 
             setupSocketEvents() {
-                this.socket.on('connect', () => {
-                    console.log('Connected to server');
-                    this.updateStatus('connected', 'Connected');
-                    // Start listening when connected
-                    this.socket.emit('startListening');
-                });
-
-                this.socket.on('disconnect', () => {
-                    console.log('Disconnected from server');
-                    this.updateStatus('disconnected', 'Disconnected');
-                });
-
-                this.socket.on('countUpdate', (count) => {
-                    this.updateCounter(count);
-                });
-
-                this.socket.on('soundSettings', (settings) => {
-                    if (settings.enabled !== undefined) {
-                        this.soundEnabled = settings.enabled;
-                        console.log('Sound', settings.enabled ? 'enabled' : 'disabled');
-                    }
-                    if (settings.volume !== undefined) {
-                        this.soundVolume = settings.volume;
-                        // Update all audio instances
-                        this.audioPool.forEach(audio => {
-                            audio.volume = this.soundVolume;
-                        });
-                        console.log('Volume set to', Math.round(settings.volume * 100) + '%');
-                    }
-                });
-
-                this.socket.on('testSound', () => {
-                    console.log('Playing test sound...');
-                    this.playSound();
-                });
-
-                this.socket.on('themeUpdate', (theme) => {
-                    console.log('🎨 Theme updated:', theme);
-                    this.applyTheme(theme.primaryColor, theme.secondaryColor);
-                });
-
-                // Show listening status
-                this.socket.on('connect', () => {
-                    setTimeout(() => {
-                        this.updateStatus('listening', 'Listening...');
-                    }, 1000);
-                });
+                this.socket.on('connect', () => this.updateStatus('connected'));
+                this.socket.on('disconnect', () => this.updateStatus('disconnected'));
+                this.socket.on('countUpdate', (count) => this.updateCounter(count));
+                this.socket.on('themeUpdate', (theme) => this.updateTheme(theme));
+                this.socket.on('displayOptionsUpdate', (options) => this.updateDisplayOptions(options));
+                this.socket.on('transcriptUpdate', (text) => this.updateTranscript(text));
             }
 
-            updateStatus(className, text) {
-                this.status.className = `connection-status ${className}`;
-                this.status.textContent = text;
+            updateStatus(status) {
+                const colors = {
+                    connected: '#10b981',
+                    listening: '#f59e0b',
+                    disconnected: '#ef4444'
+                };
+
+                this.setColorProperty('--status-color', colors[status] || colors.disconnected);
             }
 
-            applyTheme(primaryColor, secondaryColor) {
-                // Update CSS custom properties
-                document.documentElement.style.setProperty('--neon-purple', primaryColor);
-                document.documentElement.style.setProperty('--neon-pink', secondaryColor);
+            updateCounter(count) {
+                this.elements.counter.textContent = count;
 
-                // Update gradients
-                const gradient = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
-                document.documentElement.style.setProperty('--gradient-primary', gradient);
-
-                // Update glow colors
-                const textGlow = `0 0 10px ${primaryColor}, 0 0 20px ${primaryColor}, 0 0 30px ${primaryColor}`;
-                const boxGlow = `0 0 20px ${primaryColor}80, 0 0 40px ${primaryColor}50`;
-                document.documentElement.style.setProperty('--text-glow', textGlow);
-                document.documentElement.style.setProperty('--box-glow', boxGlow);
-            }
-
-            updateCounter(newCount) {
-                const oldCount = this.currentCount;
-                this.currentCount = newCount;
-
-                // Play sound and animate penalty box if count increased
-                if (newCount > oldCount && oldCount >= 0) {
-                    this.playSound();
-
-                    // Add penalty animation to box
-                    const penaltyBox = document.querySelector('.penalty-box');
-                    penaltyBox.classList.add('penalty-added');
-                    setTimeout(() => {
-                        penaltyBox.classList.remove('penalty-added');
-                    }, 800);
-                }
-
-                // Update counter with animation
-                this.counter.classList.add('updated');
-                this.counter.textContent = newCount;
-
-                // Remove animation class after animation completes
+                // Subtle animation on update
+                this.elements.counter.style.transform = 'translate(-50%, -50%) scale(1.1)';
                 setTimeout(() => {
-                    this.counter.classList.remove('updated');
-                }, 800);
+                    this.elements.counter.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 200);
+            }
 
-                // Update penalty box fill level (max height of 95px)
-                const maxHeight = 95;
-                const fillPercentage = Math.min(newCount / 50, 1); // Fill completely at 50 penalties
-                const fillHeight = fillPercentage * maxHeight;
-                this.penaltyContents.style.height = `${fillHeight}px`;
+            updateTranscript(text) {
+                if (!text || !this.config.showTranscript) return;
 
-                // Log for debugging
-                if (newCount > oldCount) {
-                    console.log(`Penalty count updated: ${oldCount} → ${newCount} 🚨`);
+                this.elements.transcript.textContent = text;
+
+                // Add scrolling animation for long text
+                const containerWidth = this.elements.transcriptContainer.offsetWidth;
+                const textWidth = this.elements.transcript.scrollWidth;
+
+                if (textWidth > containerWidth) {
+                    this.elements.transcript.classList.add('scrolling');
+                } else {
+                    this.elements.transcript.classList.remove('scrolling');
                 }
+            }
+
+            updateTheme(theme) {
+                if (theme.primaryColor) {
+                    this.setColorProperty('--primary-color', theme.primaryColor);
+                }
+                if (theme.secondaryColor) {
+                    this.setColorProperty('--secondary-color', theme.secondaryColor);
+                }
+            }
+
+            updateDisplayOptions(options) {
+                // Layout and positioning
+                if (options.layout) {
+                    this.config.layout = options.layout;
+                    this.elements.container.classList.toggle('horizontal', options.layout === 'horizontal');
+                }
+
+                if (options.transcriptPosition) {
+                    this.config.transcriptPosition = options.transcriptPosition;
+                    this.elements.transcriptContainer.classList.toggle('above', options.transcriptPosition === 'above');
+                }
+
+                // Background
+                if (options.showBackground !== undefined) {
+                    this.config.showBackground = options.showBackground;
+                    this.elements.container.classList.toggle('no-background', !options.showBackground);
+                }
+
+                if (options.backgroundColor) {
+                    this.setColorProperty('--background-color', this.hexToRgba(options.backgroundColor, options.backgroundAlpha || 0.8));
+                }
+
+                // Status indicator
+                if (options.showStatus !== undefined) {
+                    this.config.showStatus = options.showStatus;
+                    this.elements.status.classList.toggle('hidden', !options.showStatus);
+                }
+
+                if (options.statusColor) {
+                    this.setColorProperty('--status-color', options.statusColor);
+                }
+
+                if (options.statusAlpha !== undefined) {
+                    this.setProperty('--status-alpha', options.statusAlpha);
+                }
+
+                // Bin appearance
+                if (options.binColor) {
+                    this.setColorProperty('--bin-color', options.binColor);
+                }
+
+                if (options.binAlpha !== undefined) {
+                    this.setProperty('--bin-alpha', options.binAlpha);
+                }
+
+                if (options.binSize) {
+                    this.setProperty('--bin-size', options.binSize + 'px');
+                }
+
+                // Counter
+                if (options.counterColor) {
+                    this.setColorProperty('--counter-color', options.counterColor);
+                }
+
+                if (options.counterAlpha !== undefined) {
+                    this.setProperty('--counter-alpha', options.counterAlpha);
+                }
+
+                // Transcript
+                if (options.showTranscript !== undefined) {
+                    this.config.showTranscript = options.showTranscript;
+                    this.elements.transcriptContainer.classList.toggle('hidden', !options.showTranscript);
+                }
+
+                if (options.transcriptColor) {
+                    this.setColorProperty('--transcript-color', options.transcriptColor);
+                }
+
+                if (options.transcriptAlpha !== undefined) {
+                    this.setProperty('--transcript-alpha', options.transcriptAlpha);
+                }
+            }
+
+            applyDefaultTheme() {
+                this.setColorProperty('--primary-color', '#6366f1');
+                this.setColorProperty('--secondary-color', '#f472b6');
+            }
+
+            setProperty(property, value) {
+                document.documentElement.style.setProperty(property, value);
+            }
+
+            setColorProperty(property, color) {
+                if (color.startsWith('#')) {
+                    this.setProperty(property, color);
+                } else if (color.startsWith('rgb')) {
+                    this.setProperty(property, color);
+                } else {
+                    this.setProperty(property, color);
+                }
+            }
+
+            hexToRgba(hex, alpha = 1) {
+                if (!hex) return null;
+                hex = hex.replace('#', '');
+                if (hex.length === 3) {
+                    hex = hex.split('').map(c => c + c).join('');
+                }
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
             }
         }
 
-        // Initialize the overlay when page loads
+        // Initialize overlay when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new SinBinOverlay();
-        });
-
-        // Handle OBS scene changes - restart connection if needed
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                console.log('Overlay became visible, ensuring connection...');
-                // The socket.io client will automatically reconnect if needed
-            }
+            new MinimalOverlay();
         });
     </script>
 </body>

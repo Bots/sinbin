@@ -1,0 +1,25 @@
+
+:root{
+	--panel-bg: rgba(24,24,27,0.92);
+	--label-color: rgba(255,255,255,0.92);
+	--ticker-text-color: rgba(229,231,235,1);
+	--status-dot-color: rgba(255,165,0,1);
+}
+
+/* Improve text rendering for crisp numbers */
+body, #sinbinBackground { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+
+/* Trash bin container should be positioned so the counter can sit centered */
+#trashBin{ position: relative; color: var(--primary-color, #111827); }
+.counter-in-bin{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-weight:800; font-size:1.5rem; line-height:1; color:var(--label-color); text-shadow:0 1px 0 rgba(0,0,0,0.35); -webkit-font-smoothing:antialiased; }
+
+/* Ticker: readable block by default; can be switched to scrolling by adding .scrolling */
+.ticker-content{ text-align:center; color:var(--ticker-text-color); font-size:0.95rem; }
+.ticker-content.scrolling{ display:inline-block; white-space:nowrap; animation:tickerScroll 14s linear infinite; }
+@keyframes tickerScroll{ 0%{ transform:translateX(100%);} 100%{ transform:translateX(-100%);} }
+
+/* Small status dot */
+.status-dot{ width:10px; height:10px; border-radius:999px; display:inline-block; transition:background 160ms ease, box-shadow 160ms ease; box-shadow:0 0 8px rgba(0,0,0,0.2); background:var(--status-dot-color); }
+
+
+
