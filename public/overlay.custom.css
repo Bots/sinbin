@@ -1,25 +1,30 @@
+/* Custom visuals: minimalist trash bin, status dot, and ticker helpers */
 
-:root{
-	--panel-bg: rgba(24,24,27,0.92);
-	--label-color: rgba(255,255,255,0.92);
-	--ticker-text-color: rgba(229,231,235,1);
-	--status-dot-color: rgba(255,165,0,1);
-}
+/* Trash bin container */
+.trash-bin{position:relative;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));border-radius:8px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 6px 18px rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding-top:10px}
+.trash-bin .lid{position:absolute;top:-8px;left:6px;right:6px;height:16px;background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.03));border-radius:6px;border:1px solid rgba(255,255,255,0.06);box-shadow:0 3px 6px rgba(0,0,0,0.35)}
+.trash-bin .slot{width:60%;height:8px;background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(255,255,255,0.02));border-radius:4px;margin-top:28px;opacity:0.9}
 
-/* Improve text rendering for crisp numbers */
-body, #sinbinBackground { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+/* Jiggle animation to draw attention when a penalty is added */
+@keyframes jiggle{0%{transform:rotate(0deg)}25%{transform:rotate(-6deg)}50%{transform:rotate(4deg)}75%{transform:rotate(-2deg)}100%{transform:rotate(0deg)}}
+.trash-jiggle{animation:jiggle 420ms ease-in-out}
 
-/* Trash bin container should be positioned so the counter can sit centered */
-#trashBin{ position: relative; color: var(--primary-color, #111827); }
-.counter-in-bin{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-weight:800; font-size:1.5rem; line-height:1; color:var(--label-color); text-shadow:0 1px 0 rgba(0,0,0,0.35); -webkit-font-smoothing:antialiased; }
+/* status indicator: small dot + text */
+.connection-status{z-index:10;position:absolute;top:10px;right:10px;font-size:12px;font-weight:700;padding:6px 8px;letter-spacing:.4px;border-radius:10px;background:var(--status-bg-color, rgba(0,0,0,0.55));backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;gap:8px}
+.status-dot{width:10px;height:10px;border-radius:999px;display:inline-block;background:var(--status-dot-color, #ffaa00);box-shadow:0 0 8px var(--status-dot-color, #ffaa00)}
+.connection-status.connected .status-dot{background:var(--status-dot-connected, #00ff88);box-shadow:0 0 8px var(--status-dot-connected, #00ff88)}
+.connection-status.disconnected .status-dot{background:var(--status-dot-disconnected, #ff4444);box-shadow:0 0 8px var(--status-dot-disconnected, #ff4444)}
+.connection-status.listening .status-dot{background:var(--status-dot-listening, #ffaa00);box-shadow:0 0 8px var(--status-dot-listening, #ffaa00)}
+.connection-status .status-label{font-weight:700}
 
-/* Ticker: readable block by default; can be switched to scrolling by adding .scrolling */
-.ticker-content{ text-align:center; color:var(--ticker-text-color); font-size:0.95rem; }
-.ticker-content.scrolling{ display:inline-block; white-space:nowrap; animation:tickerScroll 14s linear infinite; }
-@keyframes tickerScroll{ 0%{ transform:translateX(100%);} 100%{ transform:translateX(-100%);} }
+/* Panel background disabled state (transparent, no border/shadow) */
+.panel-disabled{background:transparent !important;border-color:transparent !important;box-shadow:none !important;padding:0 !important}
 
-/* Small status dot */
-.status-dot{ width:10px; height:10px; border-radius:999px; display:inline-block; transition:background 160ms ease, box-shadow 160ms ease; box-shadow:0 0 8px rgba(0,0,0,0.2); background:var(--status-dot-color); }
+/* ticker fallback */
+.transcript-ticker{position:relative;left:0;right:0;bottom:0;margin-top:8px;height:28px;border-radius:10px;overflow:hidden;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;padding:0 10px;z-index:6;background:var(--ticker-bg-color, rgba(0,0,0,0.36))}
+.ticker-content{display:inline-block;white-space:nowrap;font-size:13px;font-weight:500;color:var(--ticker-text-color, var(--muted-text));animation:tickerScroll 14s linear infinite;padding-left:12px}
+@keyframes tickerScroll{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 
-
+/* Small accessibility helpers */
+.trash-wrap{display:flex;align-items:center}
 

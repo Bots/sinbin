@@ -449,13 +449,6 @@
             flex-direction: column;
         }
 
-        .preview-status {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-        }
-
         .preview-bin {
             width: 24px;
             height: 24px;
@@ -468,6 +461,26 @@
             font-size: 10px;
             color: white;
             font-weight: bold;
+            order: 1;
+        }
+
+        .preview-transcript-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            order: 2;
+        }
+
+        .preview-transcript-container.above {
+            order: 0;
+        }
+
+        .preview-status {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
         .preview-transcript {
@@ -505,7 +518,7 @@
         <div class="header">
             <h1>🗑️ SinBin Control</h1>
             <div class="current-count" id="currentCount">0</div>
-            <div class="count-label">Total Swears Caught</div>
+            <div class="count-label">Total Penalties</div>
         </div>
 
         <div class="content">
@@ -529,22 +542,29 @@
                         <div class="control-group">
                             <h3>Layout Mode</h3>
                             <div class="control-row">
-                                <select id="layoutMode" onchange="updateDisplayOptions()">
+                                <select id="layoutMode" onchange="markLayoutChanged()">
                                     <option value="vertical">Vertical Stack</option>
                                     <option value="horizontal">Horizontal Row</option>
                                 </select>
                             </div>
                             <div class="control-row">
-                                <select id="transcriptPosition" onchange="updateDisplayOptions()">
+                                <select id="transcriptPosition" onchange="markLayoutChanged()">
                                     <option value="below">Transcript Below</option>
                                     <option value="above">Transcript Above</option>
                                 </select>
                             </div>
+                            <div class="control-row">
+                                <button class="btn-primary" id="saveLayoutBtn" onclick="saveLayoutSettings()" disabled>
+                                    💾 Save Layout
+                                </button>
+                            </div>
                             <div class="layout-preview">
                                 <div class="preview-elements vertical" id="layoutPreview">
-                                    <div class="preview-status"></div>
                                     <div class="preview-bin">5</div>
-                                    <div class="preview-transcript"></div>
+                                    <div class="preview-transcript-container">
+                                        <div class="preview-status"></div>
+                                        <div class="preview-transcript"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -554,14 +574,14 @@
                             <div class="control-row">
                                 <div class="slider-group">
                                     <span class="slider-label">Bin Size:</span>
-                                    <input type="range" id="binSize" min="40" max="120" value="80" onchange="updateDisplayOptions()">
+                                    <input type="range" id="binSize" min="60" max="200" value="80" onchange="markVisualChanged()">
                                     <span class="slider-value" id="binSizeValue">80px</span>
                                 </div>
                             </div>
                             <div class="control-row">
                                 <div class="slider-group">
                                     <span class="slider-label">Status Size:</span>
-                                    <input type="range" id="statusSize" min="8" max="20" value="12" onchange="updateDisplayOptions()">
+                                    <input type="range" id="statusSize" min="8" max="20" value="12" onchange="markVisualChanged()">
                                     <span class="slider-value" id="statusSizeValue">12px</span>
                                 </div>
                             </div>
@@ -581,18 +601,18 @@
                             <h3>Background</h3>
                             <div class="control-row">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="showBackground" checked onchange="updateDisplayOptions()">
+                                    <input type="checkbox" id="showBackground" checked onchange="markVisualChanged()">
                                     <label for="showBackground">Enable Background</label>
                                 </div>
                             </div>
                             <div class="control-row">
                                 <span class="slider-label">Color:</span>
                                 <div class="color-picker-wrapper">
-                                    <input type="color" id="backgroundColor" value="#000000" onchange="updateDisplayOptions()">
+                                    <input type="color" id="backgroundColor" value="#000000" onchange="markVisualChanged()">
                                 </div>
                                 <div class="slider-group">
                                     <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="backgroundAlpha" min="0" max="1" step="0.05" value="0.8" onchange="updateDisplayOptions()">
+                                    <input type="range" id="backgroundAlpha" min="0" max="1" step="0.05" value="0.8" onchange="markVisualChanged()">
                                     <span class="slider-value" id="backgroundAlphaValue">80%</span>
                                 </div>
                             </div>
@@ -603,11 +623,11 @@
                             <div class="control-row">
                                 <span class="slider-label">Color:</span>
                                 <div class="color-picker-wrapper">
-                                    <input type="color" id="binColor" value="#ffffff" onchange="updateDisplayOptions()">
+                                    <input type="color" id="binColor" value="#ffffff" onchange="markVisualChanged()">
                                 </div>
                                 <div class="slider-group">
                                     <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="binAlpha" min="0" max="1" step="0.05" value="1" onchange="updateDisplayOptions()">
+                                    <input type="range" id="binAlpha" min="0" max="1" step="0.05" value="1" onchange="markVisualChanged()">
                                     <span class="slider-value" id="binAlphaValue">100%</span>
                                 </div>
                             </div>
@@ -618,11 +638,11 @@
                             <div class="control-row">
                                 <span class="slider-label">Color:</span>
                                 <div class="color-picker-wrapper">
-                                    <input type="color" id="counterColor" value="#000000" onchange="updateDisplayOptions()">
+                                    <input type="color" id="counterColor" value="#000000" onchange="markVisualChanged()">
                                 </div>
                                 <div class="slider-group">
                                     <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="counterAlpha" min="0" max="1" step="0.05" value="1" onchange="updateDisplayOptions()">
+                                    <input type="range" id="counterAlpha" min="0" max="1" step="0.05" value="1" onchange="markVisualChanged()">
                                     <span class="slider-value" id="counterAlphaValue">100%</span>
                                 </div>
                             </div>
@@ -632,18 +652,18 @@
                             <h3>Status Dot</h3>
                             <div class="control-row">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="showStatus" checked onchange="updateDisplayOptions()">
+                                    <input type="checkbox" id="showStatus" checked onchange="markVisualChanged()">
                                     <label for="showStatus">Show Status</label>
                                 </div>
                             </div>
                             <div class="control-row">
                                 <span class="slider-label">Color:</span>
                                 <div class="color-picker-wrapper">
-                                    <input type="color" id="statusColor" value="#10b981" onchange="updateDisplayOptions()">
+                                    <input type="color" id="statusColor" value="#10b981" onchange="markVisualChanged()">
                                 </div>
                                 <div class="slider-group">
                                     <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="statusAlpha" min="0" max="1" step="0.05" value="1" onchange="updateDisplayOptions()">
+                                    <input type="range" id="statusAlpha" min="0" max="1" step="0.05" value="1" onchange="markVisualChanged()">
                                     <span class="slider-value" id="statusAlphaValue">100%</span>
                                 </div>
                             </div>
@@ -653,22 +673,27 @@
                             <h3>Transcript Text</h3>
                             <div class="control-row">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="showTranscript" checked onchange="updateDisplayOptions()">
+                                    <input type="checkbox" id="showTranscript" checked onchange="markVisualChanged()">
                                     <label for="showTranscript">Show Transcript</label>
                                 </div>
                             </div>
                             <div class="control-row">
                                 <span class="slider-label">Color:</span>
                                 <div class="color-picker-wrapper">
-                                    <input type="color" id="transcriptColor" value="#ffffff" onchange="updateDisplayOptions()">
+                                    <input type="color" id="transcriptColor" value="#ffffff" onchange="markVisualChanged()">
                                 </div>
                                 <div class="slider-group">
                                     <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="transcriptAlpha" min="0" max="1" step="0.05" value="0.9" onchange="updateDisplayOptions()">
+                                    <input type="range" id="transcriptAlpha" min="0" max="1" step="0.05" value="0.9" onchange="markVisualChanged()">
                                     <span class="slider-value" id="transcriptAlphaValue">90%</span>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="control-row">
+                        <button class="btn-primary" id="saveVisualBtn" onclick="saveVisualSettings()" disabled>
+                            💾 Save Visual Settings
+                        </button>
                     </div>
                 </div>
             </div>
@@ -760,6 +785,10 @@
             constructor() {
                 this.socket = io();
                 this.currentCount = 0;
+                this.pendingChanges = {
+                    layout: {},
+                    visual: {}
+                };
                 this.setupSocketEvents();
                 this.loadWords();
                 this.updateOverlayUrl();
@@ -767,6 +796,9 @@
                 this.loadDisplaySettings();
                 this.setupEventListeners();
                 this.initializeSectionToggles();
+
+                // Initialize save button states
+                setTimeout(() => this.updateSaveButtonStates(), 100);
             }
 
             setupEventListeners() {
@@ -862,16 +894,14 @@
                 const layout = document.getElementById('layoutMode').value;
                 const transcriptPos = document.getElementById('transcriptPosition').value;
                 const preview = document.getElementById('layoutPreview');
+                const transcriptContainer = preview.querySelector('.preview-transcript-container');
 
                 preview.className = `preview-elements ${layout}`;
 
-                const elements = Array.from(preview.children);
                 if (transcriptPos === 'above') {
-                    // Move transcript to first position
-                    preview.insertBefore(elements[2], elements[0]);
+                    transcriptContainer.classList.add('above');
                 } else {
-                    // Move transcript to last position
-                    preview.appendChild(elements[2]);
+                    transcriptContainer.classList.remove('above');
                 }
             }
 
@@ -1072,6 +1102,7 @@
                 // Send to overlay
                 this.socket.emit('displayOptionsUpdate', options);
                 console.log('Display options updated:', options);
+                console.log('binSize value:', options.binSize);
             }
 
             resetAllSettings() {
@@ -1089,8 +1120,124 @@
 
                 settingsKeys.forEach(key => localStorage.removeItem(key));
 
+                // Clear pending changes
+                this.pendingChanges.layout = {};
+                this.pendingChanges.visual = {};
+                this.updateSaveButtonStates();
+
                 // Reload settings
                 this.loadDisplaySettings();
+            }
+
+            // Pending changes management
+            markLayoutChanged() {
+                this.pendingChanges.layout = {
+                    layoutMode: document.getElementById('layoutMode').value,
+                    transcriptPosition: document.getElementById('transcriptPosition').value
+                };
+                this.updateSaveButtonStates();
+            }
+
+            markVisualChanged() {
+                this.pendingChanges.visual = {
+                    showBackground: document.getElementById('showBackground').checked,
+                    backgroundColor: document.getElementById('backgroundColor').value,
+                    backgroundAlpha: parseFloat(document.getElementById('backgroundAlpha').value),
+                    binColor: document.getElementById('binColor').value,
+                    binAlpha: parseFloat(document.getElementById('binAlpha').value),
+                    binSize: parseInt(document.getElementById('binSize').value),
+                    counterColor: document.getElementById('counterColor').value,
+                    counterAlpha: parseFloat(document.getElementById('counterAlpha').value),
+                    showStatus: document.getElementById('showStatus').checked,
+                    statusColor: document.getElementById('statusColor').value,
+                    statusAlpha: parseFloat(document.getElementById('statusAlpha').value),
+                    statusSize: parseInt(document.getElementById('statusSize').value),
+                    showTranscript: document.getElementById('showTranscript').checked,
+                    transcriptColor: document.getElementById('transcriptColor').value,
+                    transcriptAlpha: parseFloat(document.getElementById('transcriptAlpha').value)
+                };
+                this.updateSaveButtonStates();
+            }
+
+            updateSaveButtonStates() {
+                const layoutBtn = document.getElementById('saveLayoutBtn');
+                const visualBtn = document.getElementById('saveVisualBtn');
+
+                if (layoutBtn) {
+                    layoutBtn.disabled = Object.keys(this.pendingChanges.layout).length === 0;
+                }
+                if (visualBtn) {
+                    visualBtn.disabled = Object.keys(this.pendingChanges.visual).length === 0;
+                }
+            }
+
+            saveLayoutSettings() {
+                if (Object.keys(this.pendingChanges.layout).length === 0) return;
+
+                // Save to localStorage
+                Object.keys(this.pendingChanges.layout).forEach(key => {
+                    localStorage.setItem(key, this.pendingChanges.layout[key]);
+                });
+
+                // Apply changes - send the actual saved values, not current UI values
+                const options = {
+                    ...this.pendingChanges.layout,
+                    // Include visual settings from localStorage for complete update
+                    showBackground: localStorage.getItem('showBackground') !== 'false',
+                    backgroundColor: localStorage.getItem('backgroundColor') || '#000000',
+                    backgroundAlpha: parseFloat(localStorage.getItem('backgroundAlpha')) || 0.8,
+                    binColor: localStorage.getItem('binColor') || '#ffffff',
+                    binAlpha: parseFloat(localStorage.getItem('binAlpha')) || 1,
+                    binSize: parseInt(localStorage.getItem('binSize')) || 80,
+                    counterColor: localStorage.getItem('counterColor') || '#000000',
+                    counterAlpha: parseFloat(localStorage.getItem('counterAlpha')) || 1,
+                    showStatus: localStorage.getItem('showStatus') !== 'false',
+                    statusColor: localStorage.getItem('statusColor') || '#10b981',
+                    statusAlpha: parseFloat(localStorage.getItem('statusAlpha')) || 1,
+                    statusSize: parseInt(localStorage.getItem('statusSize')) || 12,
+                    showTranscript: localStorage.getItem('showTranscript') !== 'false',
+                    transcriptColor: localStorage.getItem('transcriptColor') || '#ffffff',
+                    transcriptAlpha: parseFloat(localStorage.getItem('transcriptAlpha')) || 0.9
+                };
+
+                // Send to overlay
+                this.socket.emit('displayOptionsUpdate', options);
+                console.log('Sending saved layout settings to overlay:', options);
+
+                // Clear pending changes
+                this.pendingChanges.layout = {};
+                this.updateSaveButtonStates();
+
+                console.log('Layout settings saved');
+            }
+
+            saveVisualSettings() {
+                if (Object.keys(this.pendingChanges.visual).length === 0) return;
+
+                console.log('Saving visual settings:', this.pendingChanges.visual);
+
+                // Save to localStorage
+                Object.keys(this.pendingChanges.visual).forEach(key => {
+                    localStorage.setItem(key, this.pendingChanges.visual[key]);
+                });
+
+                // Apply changes - send the actual saved values, not current UI values
+                const options = {
+                    ...this.pendingChanges.visual,
+                    // Include layout settings too for complete update
+                    layout: localStorage.getItem('layoutMode') || 'vertical',
+                    transcriptPosition: localStorage.getItem('transcriptPosition') || 'below'
+                };
+
+                // Send to overlay
+                this.socket.emit('displayOptionsUpdate', options);
+                console.log('Sending saved visual settings to overlay:', options);
+
+                // Clear pending changes
+                this.pendingChanges.visual = {};
+                this.updateSaveButtonStates();
+
+                console.log('Visual settings saved and applied');
             }
         }
 
@@ -1143,6 +1290,22 @@
 
         function testSound() {
             fetch('/api/test-sound', { method: 'POST' }).catch(console.error);
+        }
+
+        function markLayoutChanged() {
+            sinBinControl.markLayoutChanged();
+        }
+
+        function markVisualChanged() {
+            sinBinControl.markVisualChanged();
+        }
+
+        function saveLayoutSettings() {
+            sinBinControl.saveLayoutSettings();
+        }
+
+        function saveVisualSettings() {
+            sinBinControl.saveVisualSettings();
         }
 
         // Initialize when page loads

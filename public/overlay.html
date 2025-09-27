@@ -1,400 +1,649 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>SinBin Overlay</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            /* Default theme colors */
-            --primary-color: #6366f1;
-            --secondary-color: #f472b6;
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>SinBin Overlay</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                /* Default theme colors */
+                --primary-color: #6366f1;
+                --secondary-color: #f472b6;
 
-            /* Element colors with alpha support */
-            --background-color: rgba(0, 0, 0, 0.8);
-            --bin-color: #ffffff;
-            --counter-color: #000000;
-            --status-color: #10b981;
-            --transcript-color: #ffffff;
+                /* Element colors with alpha support */
+                --background-color: rgba(0, 0, 0, 0.8);
+                --bin-color: #ffffff;
+                --counter-color: #000000;
+                --status-color: #10b981;
+                --transcript-color: #ffffff;
 
-            /* Alpha values */
-            --background-alpha: 0.8;
-            --bin-alpha: 1;
-            --counter-alpha: 1;
-            --status-alpha: 1;
-            --transcript-alpha: 0.9;
+                /* Alpha values */
+                --background-alpha: 0.8;
+                --bin-alpha: 1;
+                --counter-alpha: 1;
+                --status-alpha: 1;
+                --transcript-alpha: 0.9;
 
-            /* Layout settings */
-            --layout-direction: column;
-            --transcript-position: after;
-            --overlay-gap: 20px;
-            --bin-size: 80px;
-            --status-size: 12px;
-        }
+                /* Layout settings */
+                --layout-direction: column;
+                --transcript-position: after;
+                --overlay-gap: 20px;
+                --bin-size: 80px;
+                --status-size: 12px;
+            }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
-            background: transparent;
-            height: 100vh;
-            width: 100vw;
-        }
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, sans-serif;
+                overflow: hidden;
+                background: transparent;
+                height: 100vh;
+                width: 100vw;
+            }
 
-        .overlay-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            flex-direction: var(--layout-direction);
-            align-items: center;
-            justify-content: center;
-            gap: var(--overlay-gap);
-            padding: 20px;
-            background: var(--background-color);
-            transition: all 0.3s ease;
-        }
-
-        .overlay-container.no-background {
-            background: transparent;
-        }
-
-        .overlay-container.horizontal {
-            --layout-direction: row;
-            --overlay-gap: 30px;
-        }
-
-        .status-indicator {
-            width: var(--status-size);
-            height: var(--status-size);
-            border-radius: 50%;
-            background: var(--status-color);
-            opacity: var(--status-alpha);
-            transition: all 0.3s ease;
-            box-shadow: 0 0 10px rgba(var(--status-color), 0.5);
-            order: 1;
-        }
-
-        .status-indicator.hidden {
-            display: none;
-        }
-
-        .trash-bin-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            order: 2;
-        }
-
-        .trash-bin {
-            width: var(--bin-size);
-            height: var(--bin-size);
-            color: var(--bin-color);
-            opacity: var(--bin-alpha);
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-            transition: all 0.3s ease;
-        }
-
-        .counter {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: clamp(16px, calc(var(--bin-size) * 0.25), 24px);
-            font-weight: 700;
-            color: var(--counter-color);
-            opacity: var(--counter-alpha);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .transcript-container {
-            max-width: min(80vw, 600px);
-            overflow: hidden;
-            order: 3;
-        }
-
-        .transcript-container.hidden {
-            display: none;
-        }
-
-        .transcript-container.above {
-            order: 0;
-        }
-
-        .transcript-text {
-            color: var(--transcript-color);
-            opacity: var(--transcript-alpha);
-            font-size: 16px;
-            font-weight: 500;
-            text-align: center;
-            white-space: nowrap;
-            transition: all 0.3s ease;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Scrolling animation for long text */
-        .transcript-text.scrolling {
-            animation: scroll-text 10s linear infinite;
-        }
-
-        @keyframes scroll-text {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 600px) {
             .overlay-container {
-                padding: 15px;
-                --overlay-gap: 15px;
-                --bin-size: 60px;
-                --status-size: 10px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                display: flex;
+                flex-direction: var(--layout-direction);
+                align-items: center;
+                justify-content: center;
+                gap: var(--overlay-gap);
+                padding: 20px;
+                background: var(--background-color);
+                transition: all 0.3s ease;
+            }
+
+            .overlay-container > * {
+                flex-shrink: 0;
+            }
+
+            .overlay-container.no-background {
+                background: transparent;
+            }
+
+            .overlay-container.horizontal {
+                --layout-direction: row;
+                --overlay-gap: 30px;
+            }
+
+            .status-indicator {
+                width: var(--status-size);
+                height: var(--status-size);
+                border-radius: 50%;
+                background: var(--status-color);
+                opacity: var(--status-alpha);
+                transition: all 0.3s ease;
+                box-shadow: 0 0 10px rgba(var(--status-color), 0.5);
+                order: 2;
+                align-self: center;
+                flex-shrink: 0;
+                min-width: var(--status-size);
+                min-height: var(--status-size);
+            }
+
+            .status-indicator.hidden {
+                display: none;
+            }
+
+            .trash-bin-container {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                order: 1;
+            }
+
+            .trash-bin {
+                width: var(--bin-size);
+                height: var(--bin-size);
+                color: var(--bin-color);
+                opacity: var(--bin-alpha);
+                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+                transition: all 0.3s ease;
+            }
+
+            .counter {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: clamp(16px, calc(var(--bin-size) * 0.3), 60px);
+                font-weight: 700;
+                color: var(--counter-color);
+                opacity: var(--counter-alpha);
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                transition: all 0.3s ease;
+            }
+
+            .transcript-container {
+                width: 400px;
+                max-width: min(60vw, 400px);
+                order: 3;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+
+            .transcript-container.hidden {
+                display: none;
+            }
+
+            .transcript-container.above {
+                order: 0;
+            }
+
+            .status-indicator.transcript-above {
+                order: 0.5;
+            }
+
+            .transcript-wrapper {
+                overflow: hidden;
+                width: 100%;
+                height: 24px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
             }
 
             .transcript-text {
-                font-size: 14px;
+                color: var(--transcript-color);
+                opacity: var(--transcript-alpha);
+                font-size: 16px;
+                font-weight: 500;
+                text-align: center;
+                white-space: nowrap;
+                transition: all 0.3s ease;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+                position: absolute;
+                width: max-content;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
             }
-        }
-    </style>
-</head>
-<body>
-    <div class="overlay-container" id="overlayContainer">
-        <!-- Connection Status Dot -->
-        <div class="status-indicator" id="statusIndicator"></div>
 
-        <!-- Trash Bin with Counter -->
-        <div class="trash-bin-container">
-            <svg class="trash-bin" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <!-- Minimalistic trash bin design -->
-                <defs>
-                    <linearGradient id="binGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:currentColor;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:currentColor;stop-opacity:0.8" />
-                    </linearGradient>
-                </defs>
+            /* Single pass scrolling animation for long text */
+            .transcript-text.scrolling {
+                animation: slide-right-to-left 8s linear forwards;
+            }
 
-                <!-- Bin body -->
-                <rect x="20" y="35" width="60" height="50" rx="8" fill="url(#binGradient)" stroke="currentColor" stroke-width="2"/>
+            @keyframes slide-right-to-left {
+                0% {
+                    transform: translate(100%, -50%);
+                }
+                10% {
+                    transform: translate(100%, -50%);
+                }
+                90% {
+                    transform: translate(-200%, -50%);
+                }
+                100% {
+                    transform: translate(-200%, -50%);
+                }
+            }
 
-                <!-- Bin lid -->
-                <rect x="15" y="25" width="70" height="8" rx="4" fill="currentColor"/>
+            /* Responsive adjustments */
+            @media (max-width: 600px) {
+                .overlay-container {
+                    padding: 15px;
+                    --overlay-gap: 15px;
+                    --bin-size: 60px;
+                    --status-size: 10px;
+                }
 
-                <!-- Handle -->
-                <rect x="40" y="15" width="20" height="6" rx="3" fill="currentColor"/>
+                .transcript-text {
+                    font-size: 14px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="overlay-container" id="overlayContainer">
+            <!-- Main trash bin icon with counter overlay -->
+            <div class="trash-bin-container">
+                <svg
+                    class="trash-bin"
+                    viewBox="0 0 100 100"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <!-- SVG trash bin with gradient fill -->
+                    <defs>
+                        <linearGradient
+                            id="binGradient"
+                            x1="0%"
+                            y1="0%"
+                            x2="0%"
+                            y2="100%"
+                        >
+                            <stop
+                                offset="0%"
+                                style="
+                                    stop-color: currentColor;
+                                    stop-opacity: 1;
+                                "
+                            />
+                            <stop
+                                offset="100%"
+                                style="
+                                    stop-color: currentColor;
+                                    stop-opacity: 0.8;
+                                "
+                            />
+                        </linearGradient>
+                    </defs>
 
-                <!-- Subtle details -->
-                <line x1="35" y1="45" x2="35" y2="70" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-                <line x1="50" y1="45" x2="50" y2="70" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-                <line x1="65" y1="45" x2="65" y2="70" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-            </svg>
+                    <!-- Main container body -->
+                    <rect
+                        x="20"
+                        y="35"
+                        width="60"
+                        height="50"
+                        rx="8"
+                        fill="url(#binGradient)"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    />
 
-            <div class="counter" id="counter">0</div>
+                    <!-- Container lid -->
+                    <rect
+                        x="15"
+                        y="25"
+                        width="70"
+                        height="8"
+                        rx="4"
+                        fill="currentColor"
+                    />
+
+                    <!-- Lid handle -->
+                    <rect
+                        x="40"
+                        y="15"
+                        width="20"
+                        height="6"
+                        rx="3"
+                        fill="currentColor"
+                    />
+
+                    <!-- Decorative vertical lines -->
+                    <line
+                        x1="35"
+                        y1="45"
+                        x2="35"
+                        y2="70"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        opacity="0.3"
+                    />
+                    <line
+                        x1="50"
+                        y1="45"
+                        x2="50"
+                        y2="70"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        opacity="0.3"
+                    />
+                    <line
+                        x1="65"
+                        y1="45"
+                        x2="65"
+                        y2="70"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        opacity="0.3"
+                    />
+                </svg>
+
+                <div class="counter" id="counter">0</div>
+            </div>
+
+            <!-- Status indicator -->
+            <div class="status-indicator" id="statusIndicator"></div>
+
+            <!-- Live transcription display -->
+            <div class="transcript-container" id="transcriptContainer">
+                <div class="transcript-wrapper">
+                    <div class="transcript-text" id="transcriptText">
+                        Listening for audio...
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Transcript Display -->
-        <div class="transcript-container" id="transcriptContainer">
-            <div class="transcript-text" id="transcriptText">Listening for audio...</div>
-        </div>
-    </div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            class MinimalOverlay {
+                constructor() {
+                    this.socket = io()
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        class MinimalOverlay {
-            constructor() {
-                this.socket = io();
-                this.config = {
-                    layout: 'vertical',
-                    transcriptPosition: 'below',
-                    showBackground: true,
-                    showStatus: true,
-                    showTranscript: true
-                };
+                    // Default configuration state
+                    this.config = {
+                        layout: 'vertical',
+                        transcriptPosition: 'below',
+                        showBackground: true,
+                        showStatus: true,
+                        showTranscript: true,
+                    }
 
-                this.elements = {
-                    container: document.getElementById('overlayContainer'),
-                    status: document.getElementById('statusIndicator'),
-                    counter: document.getElementById('counter'),
-                    transcript: document.getElementById('transcriptText'),
-                    transcriptContainer: document.getElementById('transcriptContainer')
-                };
+                    // Cache DOM elements for better performance
+                    this.elements = {
+                        container: document.getElementById('overlayContainer'),
+                        status: document.getElementById('statusIndicator'),
+                        counter: document.getElementById('counter'),
+                        transcript: document.getElementById('transcriptText'),
+                        transcriptContainer: document.getElementById(
+                            'transcriptContainer'
+                        ),
+                    }
 
-                this.setupSocketEvents();
-                this.applyDefaultTheme();
-            }
+                    this.setupSocketEvents()
+                    this.applyDefaultTheme()
+                    this.loadSavedSettings()
+                }
 
-            setupSocketEvents() {
-                this.socket.on('connect', () => this.updateStatus('connected'));
-                this.socket.on('disconnect', () => this.updateStatus('disconnected'));
-                this.socket.on('countUpdate', (count) => this.updateCounter(count));
-                this.socket.on('themeUpdate', (theme) => this.updateTheme(theme));
-                this.socket.on('displayOptionsUpdate', (options) => this.updateDisplayOptions(options));
-                this.socket.on('transcriptUpdate', (text) => this.updateTranscript(text));
-            }
+                setupSocketEvents() {
+                    // Handle real-time connection status updates
+                    this.socket.on('connect', () => {
+                        this.updateStatus('connected')
+                        // Automatically start listening when connected
+                        this.socket.emit('startListening')
+                    })
+                    this.socket.on('disconnect', () =>
+                        this.updateStatus('disconnected')
+                    )
 
-            updateStatus(status) {
-                const colors = {
-                    connected: '#10b981',
-                    listening: '#f59e0b',
-                    disconnected: '#ef4444'
-                };
+                    // Update counter display when profanity is detected
+                    this.socket.on('countUpdate', (count) =>
+                        this.updateCounter(count)
+                    )
 
-                this.setColorProperty('--status-color', colors[status] || colors.disconnected);
-            }
+                    // Apply theme changes from control panel
+                    this.socket.on('themeUpdate', (theme) =>
+                        this.updateTheme(theme)
+                    )
 
-            updateCounter(count) {
-                this.elements.counter.textContent = count;
+                    // Handle comprehensive display option updates
+                    this.socket.on('displayOptionsUpdate', (options) =>
+                        this.updateDisplayOptions(options)
+                    )
 
-                // Subtle animation on update
-                this.elements.counter.style.transform = 'translate(-50%, -50%) scale(1.1)';
-                setTimeout(() => {
-                    this.elements.counter.style.transform = 'translate(-50%, -50%) scale(1)';
-                }, 200);
-            }
+                    // Show live transcription text
+                    this.socket.on('transcriptUpdate', (text) =>
+                        this.updateTranscript(text)
+                    )
 
-            updateTranscript(text) {
-                if (!text || !this.config.showTranscript) return;
+                    // Handle status updates from server
+                    this.socket.on('statusUpdate', (status) =>
+                        this.updateStatus(status)
+                    )
+                }
 
-                this.elements.transcript.textContent = text;
+                updateStatus(status) {
+                    const colors = {
+                        connected: '#10b981',
+                        listening: '#f59e0b',
+                        disconnected: '#ef4444',
+                    }
 
-                // Add scrolling animation for long text
-                const containerWidth = this.elements.transcriptContainer.offsetWidth;
-                const textWidth = this.elements.transcript.scrollWidth;
+                    this.setColorProperty(
+                        '--status-color',
+                        colors[status] || colors.disconnected
+                    )
+                }
 
-                if (textWidth > containerWidth) {
-                    this.elements.transcript.classList.add('scrolling');
-                } else {
-                    this.elements.transcript.classList.remove('scrolling');
+                updateCounter(count) {
+                    this.elements.counter.textContent = count
+
+                    // Provide subtle visual feedback when count increases
+                    this.elements.counter.style.transform =
+                        'translate(-50%, -50%) scale(1.1)'
+                    setTimeout(() => {
+                        this.elements.counter.style.transform =
+                            'translate(-50%, -50%) scale(1)'
+                    }, 200)
+                }
+
+                updateTranscript(text) {
+                    if (!this.config.showTranscript) return
+
+                    // Update transcript text, use placeholder if empty
+                    const displayText = text || 'Listening for audio...'
+                    this.elements.transcript.textContent = displayText
+
+                    // Reset animation and check if scrolling is needed
+                    this.elements.transcript.classList.remove('scrolling')
+
+                    // Force reflow to reset animation
+                    this.elements.transcript.offsetHeight
+
+                    // Check if text needs scrolling after a short delay
+                    setTimeout(() => {
+                        const wrapper = this.elements.transcriptContainer.querySelector('.transcript-wrapper')
+                        const containerWidth = wrapper ? wrapper.offsetWidth : this.elements.transcriptContainer.offsetWidth
+                        const textWidth = this.elements.transcript.scrollWidth
+
+                        if (textWidth > containerWidth && text) {
+                            this.elements.transcript.classList.add('scrolling')
+                        }
+                    }, 50)
+                }
+
+                updateTheme(theme) {
+                    if (theme.primaryColor) {
+                        this.setColorProperty(
+                            '--primary-color',
+                            theme.primaryColor
+                        )
+                    }
+                    if (theme.secondaryColor) {
+                        this.setColorProperty(
+                            '--secondary-color',
+                            theme.secondaryColor
+                        )
+                    }
+                }
+
+                updateDisplayOptions(options) {
+                    // Handle layout configuration changes
+                    if (options.layout) {
+                        this.config.layout = options.layout
+                        this.elements.container.classList.toggle(
+                            'horizontal',
+                            options.layout === 'horizontal'
+                        )
+                    }
+
+                    if (options.transcriptPosition) {
+                        this.config.transcriptPosition =
+                            options.transcriptPosition
+                        this.elements.transcriptContainer.classList.toggle(
+                            'above',
+                            options.transcriptPosition === 'above'
+                        )
+                        this.elements.status.classList.toggle(
+                            'transcript-above',
+                            options.transcriptPosition === 'above'
+                        )
+                    }
+
+                    // Configure background appearance
+                    if (options.showBackground !== undefined) {
+                        this.config.showBackground = options.showBackground
+                        this.elements.container.classList.toggle(
+                            'no-background',
+                            !options.showBackground
+                        )
+                    }
+
+                    if (options.backgroundColor) {
+                        this.setColorProperty(
+                            '--background-color',
+                            this.hexToRgba(
+                                options.backgroundColor,
+                                options.backgroundAlpha || 0.8
+                            )
+                        )
+                    }
+
+                    // Update status indicator settings
+                    if (options.showStatus !== undefined) {
+                        this.config.showStatus = options.showStatus
+                        this.elements.status.classList.toggle(
+                            'hidden',
+                            !options.showStatus
+                        )
+                    }
+
+                    if (options.statusColor) {
+                        this.setColorProperty(
+                            '--status-color',
+                            options.statusColor
+                        )
+                    }
+
+                    if (options.statusAlpha !== undefined) {
+                        this.setProperty('--status-alpha', options.statusAlpha)
+                    }
+
+                    // Configure trash bin appearance
+                    if (options.binColor) {
+                        this.setColorProperty('--bin-color', options.binColor)
+                    }
+
+                    if (options.binAlpha !== undefined) {
+                        this.setProperty('--bin-alpha', options.binAlpha)
+                    }
+
+                    if (options.binSize) {
+                        console.log('Setting bin size to:', options.binSize + 'px')
+                        this.setProperty('--bin-size', options.binSize + 'px')
+                    }
+
+                    // Update counter display settings
+                    if (options.counterColor) {
+                        this.setColorProperty(
+                            '--counter-color',
+                            options.counterColor
+                        )
+                    }
+
+                    if (options.counterAlpha !== undefined) {
+                        this.setProperty(
+                            '--counter-alpha',
+                            options.counterAlpha
+                        )
+                    }
+
+                    // Configure transcript display
+                    if (options.showTranscript !== undefined) {
+                        this.config.showTranscript = options.showTranscript
+                        this.elements.transcriptContainer.classList.toggle(
+                            'hidden',
+                            !options.showTranscript
+                        )
+                    }
+
+                    if (options.transcriptColor) {
+                        this.setColorProperty(
+                            '--transcript-color',
+                            options.transcriptColor
+                        )
+                    }
+
+                    if (options.transcriptAlpha !== undefined) {
+                        this.setProperty(
+                            '--transcript-alpha',
+                            options.transcriptAlpha
+                        )
+                    }
+                }
+
+                applyDefaultTheme() {
+                    this.setColorProperty('--primary-color', '#6366f1')
+                    this.setColorProperty('--secondary-color', '#f472b6')
+                }
+
+                loadSavedSettings() {
+                    // Load all saved display settings from localStorage
+                    const savedSettings = {
+                        layout: localStorage.getItem('layoutMode') || 'vertical',
+                        transcriptPosition: localStorage.getItem('transcriptPosition') || 'below',
+                        showBackground: localStorage.getItem('showBackground') !== 'false',
+                        backgroundColor: localStorage.getItem('backgroundColor') || '#000000',
+                        backgroundAlpha: parseFloat(localStorage.getItem('backgroundAlpha')) || 0.8,
+                        binColor: localStorage.getItem('binColor') || '#ffffff',
+                        binAlpha: parseFloat(localStorage.getItem('binAlpha')) || 1,
+                        binSize: parseInt(localStorage.getItem('binSize')) || 80,
+                        counterColor: localStorage.getItem('counterColor') || '#000000',
+                        counterAlpha: parseFloat(localStorage.getItem('counterAlpha')) || 1,
+                        showStatus: localStorage.getItem('showStatus') !== 'false',
+                        statusColor: localStorage.getItem('statusColor') || '#10b981',
+                        statusAlpha: parseFloat(localStorage.getItem('statusAlpha')) || 1,
+                        statusSize: parseInt(localStorage.getItem('statusSize')) || 12,
+                        showTranscript: localStorage.getItem('showTranscript') !== 'false',
+                        transcriptColor: localStorage.getItem('transcriptColor') || '#ffffff',
+                        transcriptAlpha: parseFloat(localStorage.getItem('transcriptAlpha')) || 0.9
+                    }
+
+                    console.log('Loading saved settings:', savedSettings)
+
+                    // Apply the loaded settings
+                    this.updateDisplayOptions(savedSettings)
+                }
+
+                setProperty(property, value) {
+                    document.documentElement.style.setProperty(property, value)
+                }
+
+                setColorProperty(property, color) {
+                    if (color.startsWith('#')) {
+                        this.setProperty(property, color)
+                    } else if (color.startsWith('rgb')) {
+                        this.setProperty(property, color)
+                    } else {
+                        this.setProperty(property, color)
+                    }
+                }
+
+                hexToRgba(hex, alpha = 1) {
+                    if (!hex) return null
+
+                    // Remove hash prefix and expand shorthand hex colors
+                    hex = hex.replace('#', '')
+                    if (hex.length === 3) {
+                        hex = hex
+                            .split('')
+                            .map((c) => c + c)
+                            .join('')
+                    }
+
+                    // Convert hex components to RGB values
+                    const r = parseInt(hex.substring(0, 2), 16)
+                    const g = parseInt(hex.substring(2, 4), 16)
+                    const b = parseInt(hex.substring(4, 6), 16)
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`
                 }
             }
 
-            updateTheme(theme) {
-                if (theme.primaryColor) {
-                    this.setColorProperty('--primary-color', theme.primaryColor);
-                }
-                if (theme.secondaryColor) {
-                    this.setColorProperty('--secondary-color', theme.secondaryColor);
-                }
-            }
-
-            updateDisplayOptions(options) {
-                // Layout and positioning
-                if (options.layout) {
-                    this.config.layout = options.layout;
-                    this.elements.container.classList.toggle('horizontal', options.layout === 'horizontal');
-                }
-
-                if (options.transcriptPosition) {
-                    this.config.transcriptPosition = options.transcriptPosition;
-                    this.elements.transcriptContainer.classList.toggle('above', options.transcriptPosition === 'above');
-                }
-
-                // Background
-                if (options.showBackground !== undefined) {
-                    this.config.showBackground = options.showBackground;
-                    this.elements.container.classList.toggle('no-background', !options.showBackground);
-                }
-
-                if (options.backgroundColor) {
-                    this.setColorProperty('--background-color', this.hexToRgba(options.backgroundColor, options.backgroundAlpha || 0.8));
-                }
-
-                // Status indicator
-                if (options.showStatus !== undefined) {
-                    this.config.showStatus = options.showStatus;
-                    this.elements.status.classList.toggle('hidden', !options.showStatus);
-                }
-
-                if (options.statusColor) {
-                    this.setColorProperty('--status-color', options.statusColor);
-                }
-
-                if (options.statusAlpha !== undefined) {
-                    this.setProperty('--status-alpha', options.statusAlpha);
-                }
-
-                // Bin appearance
-                if (options.binColor) {
-                    this.setColorProperty('--bin-color', options.binColor);
-                }
-
-                if (options.binAlpha !== undefined) {
-                    this.setProperty('--bin-alpha', options.binAlpha);
-                }
-
-                if (options.binSize) {
-                    this.setProperty('--bin-size', options.binSize + 'px');
-                }
-
-                // Counter
-                if (options.counterColor) {
-                    this.setColorProperty('--counter-color', options.counterColor);
-                }
-
-                if (options.counterAlpha !== undefined) {
-                    this.setProperty('--counter-alpha', options.counterAlpha);
-                }
-
-                // Transcript
-                if (options.showTranscript !== undefined) {
-                    this.config.showTranscript = options.showTranscript;
-                    this.elements.transcriptContainer.classList.toggle('hidden', !options.showTranscript);
-                }
-
-                if (options.transcriptColor) {
-                    this.setColorProperty('--transcript-color', options.transcriptColor);
-                }
-
-                if (options.transcriptAlpha !== undefined) {
-                    this.setProperty('--transcript-alpha', options.transcriptAlpha);
-                }
-            }
-
-            applyDefaultTheme() {
-                this.setColorProperty('--primary-color', '#6366f1');
-                this.setColorProperty('--secondary-color', '#f472b6');
-            }
-
-            setProperty(property, value) {
-                document.documentElement.style.setProperty(property, value);
-            }
-
-            setColorProperty(property, color) {
-                if (color.startsWith('#')) {
-                    this.setProperty(property, color);
-                } else if (color.startsWith('rgb')) {
-                    this.setProperty(property, color);
-                } else {
-                    this.setProperty(property, color);
-                }
-            }
-
-            hexToRgba(hex, alpha = 1) {
-                if (!hex) return null;
-                hex = hex.replace('#', '');
-                if (hex.length === 3) {
-                    hex = hex.split('').map(c => c + c).join('');
-                }
-                const r = parseInt(hex.substring(0, 2), 16);
-                const g = parseInt(hex.substring(2, 4), 16);
-                const b = parseInt(hex.substring(4, 6), 16);
-                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-            }
-        }
-
-        // Initialize overlay when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new MinimalOverlay();
-        });
-    </script>
-</body>
+            // Initialize overlay when DOM is ready
+            document.addEventListener('DOMContentLoaded', () => {
+                new MinimalOverlay()
+            })
+        </script>
+    </body>
 </html>
