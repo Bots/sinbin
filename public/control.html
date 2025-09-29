@@ -643,8 +643,11 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Layout & Position -->
                 <div class="card">
-                    <h3 class="text-lg font-semibold mb-4">Layout & Position</h3>
-                    <div class="space-y-4">
+                    <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('layoutSection')">
+                        <h3 class="text-lg font-semibold">Layout & Position</h3>
+                        <i class="fas fa-chevron-down transition-transform" id="layoutSectionIcon"></i>
+                    </div>
+                    <div id="layoutSection" class="space-y-4">
                         <div>
                             <label class="form-label">Layout Direction</label>
                             <select id="overlayLayout" class="form-input">
@@ -676,7 +679,11 @@
 
                 <!-- Live Preview -->
                 <div class="card">
-                    <h3 class="text-lg font-semibold mb-4">Live Preview</h3>
+                    <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('previewSection')">
+                        <h3 class="text-lg font-semibold">Live Preview</h3>
+                        <i class="fas fa-chevron-down transition-transform" id="previewSectionIcon"></i>
+                    </div>
+                    <div id="previewSection">
                     <div class="bg-black/20 rounded-lg p-4 h-48 flex items-center justify-center">
                         <div id="miniPreview" class="flex items-center gap-3 scale-50 transform-origin-center">
                             <div class="w-16 h-16 bg-white rounded flex items-center justify-center relative">
@@ -695,12 +702,17 @@
                         <i class="fas fa-eye"></i>
                         Open Overlay Preview
                     </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Background Controls -->
             <div class="card mt-6">
-                <h3 class="text-lg font-semibold mb-4">Background Styling</h3>
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('backgroundSection')">
+                    <h3 class="text-lg font-semibold">Background Styling</h3>
+                    <i class="fas fa-chevron-down transition-transform" id="backgroundSectionIcon"></i>
+                </div>
+                <div id="backgroundSection">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="form-label">Background Color</label>
@@ -738,11 +750,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Trash Bin Controls -->
             <div class="card mt-6">
-                <h3 class="text-lg font-semibold mb-4">Trash Bin Styling</h3>
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('binSection')">
+                    <h3 class="text-lg font-semibold">Trash Bin Styling</h3>
+                    <i class="fas fa-chevron-down transition-transform" id="binSectionIcon"></i>
+                </div>
+                <div id="binSection">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="form-label">Bin Color</label>
@@ -773,11 +790,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Counter Controls -->
             <div class="card mt-6">
-                <h3 class="text-lg font-semibold mb-4">Counter Styling</h3>
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('counterSection')">
+                    <h3 class="text-lg font-semibold">Counter Styling</h3>
+                    <i class="fas fa-chevron-down transition-transform" id="counterSectionIcon"></i>
+                </div>
+                <div id="counterSection">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="form-label">Counter Color</label>
@@ -801,11 +823,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Status Indicator Controls -->
             <div class="card mt-6">
-                <h3 class="text-lg font-semibold mb-4">Status Indicator Styling</h3>
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('statusSection')">
+                    <h3 class="text-lg font-semibold">Status Indicator Styling</h3>
+                    <i class="fas fa-chevron-down transition-transform" id="statusSectionIcon"></i>
+                </div>
+                <div id="statusSection">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="form-label">Connected Color</label>
@@ -834,11 +861,16 @@
                         <span id="statusAlphaValue" class="text-sm font-medium w-12">100%</span>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Transcript Controls -->
             <div class="card mt-6">
-                <h3 class="text-lg font-semibold mb-4">Transcript Styling</h3>
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('transcriptSection')">
+                    <h3 class="text-lg font-semibold">Transcript Styling</h3>
+                    <i class="fas fa-chevron-down transition-transform" id="transcriptSectionIcon"></i>
+                </div>
+                <div id="transcriptSection">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="form-label">Transcript Color</label>
@@ -864,26 +896,41 @@
                         </select>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Threshold Colors -->
             <div class="card mt-6">
-                <h3 class="text-lg font-semibold mb-4">Threshold Colors</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="form-label">Warning Color</label>
-                        <div class="flex gap-2">
-                            <input type="color" id="warningColor" class="w-16 h-10 rounded border border-gray-600" value="#f59e0b">
-                            <input type="text" id="warningColorHex" class="form-input flex-1" value="#f59e0b" placeholder="#f59e0b">
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('thresholdSection')">
+                    <h3 class="text-lg font-semibold">Warning Thresholds</h3>
+                    <i class="fas fa-chevron-down transition-transform" id="thresholdSectionIcon"></i>
+                </div>
+                <div id="thresholdSection">
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="form-label">Warning Threshold</label>
+                            <div class="flex gap-3">
+                                <input type="number" id="warningThreshold" class="form-input" value="5" min="1" max="100">
+                                <input type="color" id="warningColor" class="w-16 h-10 rounded border border-gray-600" value="#f59e0b">
+                                <input type="text" id="warningColorHex" class="form-input flex-1" value="#f59e0b" placeholder="#f59e0b">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Danger Threshold</label>
+                            <div class="flex gap-3">
+                                <input type="number" id="dangerThreshold" class="form-input" value="10" min="1" max="100">
+                                <input type="color" id="dangerColor" class="w-16 h-10 rounded border border-gray-600" value="#ef4444">
+                                <input type="text" id="dangerColorHex" class="form-input flex-1" value="#ef4444" placeholder="#ef4444">
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="form-label">Danger Color</label>
-                        <div class="flex gap-2">
-                            <input type="color" id="dangerColor" class="w-16 h-10 rounded border border-gray-600" value="#ef4444">
-                            <input type="text" id="dangerColorHex" class="form-input flex-1" value="#ef4444" placeholder="#ef4444">
-                        </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="enableThresholds" class="w-4 h-4" checked>
+                        <label class="form-label mb-0">Enable threshold color changes</label>
+                        <span class="text-sm text-base-content/60">(When disabled, bin keeps its base color)</span>
                     </div>
+                </div>
                 </div>
             </div>
 
@@ -911,30 +958,6 @@
         <!-- Settings Tab -->
         <div id="settings" class="tab-content">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Thresholds -->
-                <div class="card p-6">
-                    <h3 class="text-lg font-semibold mb-4">Warning Thresholds</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-2">Warning Threshold</label>
-                            <div class="flex gap-3">
-                                <input type="number" id="warningThreshold" class="form-input" value="5">
-                                <input type="color" id="warningColor" class="w-12 h-10 rounded border border-gray-600" value="#f59e0b">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-2">Danger Threshold</label>
-                            <div class="flex gap-3">
-                                <input type="number" id="dangerThreshold" class="form-input" value="10">
-                                <input type="color" id="dangerColor" class="w-12 h-10 rounded border border-gray-600" value="#ef4444">
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" onclick="saveThresholds()">
-                            <i class="fas fa-save"></i>
-                            Save Thresholds
-                        </button>
-                    </div>
-                </div>
 
                 <!-- Auto Reset -->
                 <div class="card p-6">
@@ -982,5 +1005,33 @@
     <!-- Scripts -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/app.js"></script>
+    <script>
+        // Toggle section visibility
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const icon = document.getElementById(sectionId + 'Icon');
+
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                section.style.display = 'none';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        }
+
+        // Initialize all sections as expanded
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = ['layoutSection', 'previewSection', 'backgroundSection', 'binSection', 'counterSection', 'statusSection', 'transcriptSection', 'thresholdSection'];
+            sections.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                const icon = document.getElementById(sectionId + 'Icon');
+                if (section && icon) {
+                    section.style.display = 'block';
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

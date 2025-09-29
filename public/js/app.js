@@ -909,7 +909,7 @@ class SinBinApp {
         }
 
         // Checkbox listeners
-        ['showBackground', 'showStatus', 'showTranscript'].forEach(checkboxId => {
+        ['showBackground', 'showStatus', 'showTranscript', 'enableThresholds'].forEach(checkboxId => {
             const checkbox = document.getElementById(checkboxId);
             if (checkbox) {
                 checkbox.addEventListener('change', () => this.updateMiniPreview());
@@ -932,6 +932,7 @@ class SinBinApp {
         const bgColor = document.getElementById('backgroundColor').value;
         const bgAlpha = document.getElementById('backgroundAlpha').value;
         const binColor = document.getElementById('binColor').value;
+        const binSize = document.getElementById('binSize').value;
         const statusConnected = document.getElementById('statusConnectedColor').value;
         const transcriptColor = document.getElementById('transcriptColor').value;
         const layout = document.getElementById('overlayLayout').value;
@@ -947,9 +948,13 @@ class SinBinApp {
             ? `${bgColor}${Math.round(bgAlpha * 255).toString(16).padStart(2, '0')}`
             : 'transparent';
 
-        // Update bin color
+        // Update bin color and size
+        const binContainer = preview.querySelector('.w-16.h-16');
         const binSvg = preview.querySelector('svg');
-        if (binSvg) {
+        if (binContainer && binSvg) {
+            // Scale the bin container based on bin size (mapping 40-150 to appropriate preview scale)
+            const scale = (binSize - 40) / (150 - 40) * 0.5 + 0.75; // Maps 40-150 to 0.75-1.25 scale
+            binContainer.style.transform = `scale(${scale})`;
             binSvg.style.color = binColor;
         }
 
@@ -966,9 +971,12 @@ class SinBinApp {
             transcriptText.style.color = transcriptColor;
             transcriptText.style.display = document.getElementById('showTranscript').checked ? 'block' : 'none';
         }
+
+        // AUTO-APPLY: Also apply settings to the actual overlay in real-time (silently)
+        this.applyOverlayStyles(false);
     }
 
-    async applyOverlayStyles() {
+    async applyOverlayStyles(showNotification = true) {
         const styles = this.getOverlayStyles();
 
         try {
@@ -981,9 +989,9 @@ class SinBinApp {
             const overlayOptions = {
                 layout: styles.layout,
                 transcriptPosition: styles.transcriptPosition,
-                showBackground: styles.showBackground === 'true',
-                showStatus: styles.showStatus === 'true',
-                showTranscript: styles.showTranscript === 'true',
+                showBackground: styles.showBackground === true || styles.showBackground === 'true',
+                showStatus: styles.showStatus === true || styles.showStatus === 'true',
+                showTranscript: styles.showTranscript === true || styles.showTranscript === 'true',
                 backgroundColor: styles.backgroundColor,
                 backgroundAlpha: parseFloat(styles.backgroundAlpha) || 0.8,
                 binColor: styles.binColor,
@@ -994,13 +1002,20 @@ class SinBinApp {
                 statusColor: styles.statusConnectedColor, // Default status color
                 statusAlpha: parseFloat(styles.statusAlpha) || 1.0,
                 transcriptColor: styles.transcriptColor,
-                transcriptAlpha: parseFloat(styles.transcriptAlpha) || 1.0
+                transcriptAlpha: parseFloat(styles.transcriptAlpha) || 1.0,
+                warningColor: styles.warningColor,
+                dangerColor: styles.dangerColor,
+                warningThreshold: parseInt(styles.warningThreshold) || 5,
+                dangerThreshold: parseInt(styles.dangerThreshold) || 10,
+                enableThresholds: styles.enableThresholds === true || styles.enableThresholds === 'true'
             };
 
             // Send to overlay via WebSocket
             if (this.socket) {
                 this.socket.emit('displayOptionsUpdate', overlayOptions);
                 console.log('Sending overlay options:', overlayOptions);
+                console.log('Background settings - color:', overlayOptions.backgroundColor, 'alpha:', overlayOptions.backgroundAlpha);
+                console.log('Threshold settings - enableThresholds:', overlayOptions.enableThresholds, 'type:', typeof overlayOptions.enableThresholds);
             }
 
             // Also save to overlay localStorage directly (for when overlay loads)
@@ -1021,7 +1036,12 @@ class SinBinApp {
                 counterAlpha: 'counterAlpha',
                 showTranscript: 'showTranscript',
                 transcriptColor: 'transcriptColor',
-                transcriptAlpha: 'transcriptAlpha'
+                transcriptAlpha: 'transcriptAlpha',
+                warningColor: 'warningColor',
+                dangerColor: 'dangerColor',
+                warningThreshold: 'warningThreshold',
+                dangerThreshold: 'dangerThreshold',
+                enableThresholds: 'enableThresholds'
             };
 
             Object.keys(overlayOptions).forEach(key => {
@@ -1029,10 +1049,14 @@ class SinBinApp {
                 localStorage.setItem(storageKey, overlayOptions[key]);
             });
 
-            this.showNotification('Overlay styles applied successfully', 'success');
+            if (showNotification) {
+                this.showNotification('Overlay styles applied successfully', 'success');
+            }
         } catch (error) {
             console.error('Error applying overlay styles:', error);
-            this.showNotification('Failed to apply overlay styles', 'error');
+            if (showNotification) {
+                this.showNotification('Failed to apply overlay styles', 'error');
+            }
         }
     }
 
@@ -1073,7 +1097,10 @@ class SinBinApp {
             transcriptAlpha: getValue('transcriptAlpha'),
             transcriptWeight: getValue('transcriptWeight'),
             warningColor: getValue('warningColor'),
-            dangerColor: getValue('dangerColor')
+            dangerColor: getValue('dangerColor'),
+            warningThreshold: getValue('warningThreshold'),
+            dangerThreshold: getValue('dangerThreshold'),
+            enableThresholds: getValue('enableThresholds')
         };
     }
 

@@ -581,23 +581,26 @@
                         )
                     }
 
-                    if (options.backgroundColor) {
+                    if (options.backgroundColor || options.backgroundAlpha !== undefined) {
+                        console.log('Updating background - color:', options.backgroundColor, 'alpha:', options.backgroundAlpha);
+                        const currentBgColor = options.backgroundColor || localStorage.getItem('backgroundColor') || '#000000';
+                        const currentBgAlpha = options.backgroundAlpha !== undefined ? options.backgroundAlpha : 0.8;
                         this.setColorProperty(
                             '--background-color',
-                            this.hexToRgba(
-                                options.backgroundColor,
-                                options.backgroundAlpha || 0.8
-                            )
+                            this.hexToRgba(currentBgColor, currentBgAlpha)
                         )
+                        console.log('Background updated to:', this.hexToRgba(currentBgColor, currentBgAlpha));
                     }
 
                     // Update status indicator settings
                     if (options.showStatus !== undefined) {
+                        console.log('Processing showStatus:', options.showStatus, 'type:', typeof options.showStatus);
                         this.config.showStatus = options.showStatus
                         this.elements.status.classList.toggle(
                             'hidden',
                             !options.showStatus
                         )
+                        console.log('Status indicator hidden class:', this.elements.status.classList.contains('hidden'));
                     }
 
                     if (options.statusColor) {
@@ -613,7 +616,10 @@
 
                     // Configure trash bin appearance
                     if (options.binColor) {
+                        console.log('Updating bin color to:', options.binColor);
+                        console.log('Current --bin-color value:', getComputedStyle(document.documentElement).getPropertyValue('--bin-color'));
                         this.setColorProperty('--bin-color', options.binColor)
+                        console.log('New --bin-color value:', getComputedStyle(document.documentElement).getPropertyValue('--bin-color'));
                     }
 
                     if (options.binAlpha !== undefined) {
@@ -642,11 +648,13 @@
 
                     // Configure transcript display
                     if (options.showTranscript !== undefined) {
+                        console.log('Processing showTranscript:', options.showTranscript, 'type:', typeof options.showTranscript);
                         this.config.showTranscript = options.showTranscript
                         this.elements.transcriptContainer.classList.toggle(
                             'hidden',
                             !options.showTranscript
                         )
+                        console.log('Transcript container hidden class:', this.elements.transcriptContainer.classList.contains('hidden'));
                     }
 
                     if (options.transcriptColor) {
@@ -662,6 +670,26 @@
                             options.transcriptAlpha
                         )
                     }
+
+                    // Update threshold settings
+                    if (options.enableThresholds !== undefined) {
+                        console.log('Updating enableThresholds setting to:', options.enableThresholds);
+                        localStorage.setItem('enableThresholds', options.enableThresholds);
+
+                        // If thresholds are being disabled, remove any existing threshold classes
+                        if (!options.enableThresholds) {
+                            console.log('Thresholds disabled - removing threshold classes');
+                            const binContainer = document.querySelector('.trash-bin-container');
+                            const bin = document.querySelector('.trash-bin');
+                            const counter = document.querySelector('.counter');
+
+                            if (binContainer && bin && counter) {
+                                binContainer.classList.remove('threshold-warning', 'threshold-danger');
+                                bin.classList.remove('threshold-warning', 'threshold-danger');
+                                counter.classList.remove('threshold-warning', 'threshold-danger');
+                            }
+                        }
+                    }
                 }
 
                 applyDefaultTheme() {
@@ -671,6 +699,11 @@
 
                 loadSavedSettings() {
                     // Load all saved display settings from localStorage
+                    console.log('Loading saved settings from localStorage...');
+                    console.log('binColor from localStorage:', localStorage.getItem('binColor'));
+                    console.log('showStatus from localStorage:', localStorage.getItem('showStatus'));
+                    console.log('showTranscript from localStorage:', localStorage.getItem('showTranscript'));
+                    console.log('enableThresholds from localStorage:', localStorage.getItem('enableThresholds'));
                     const savedSettings = {
                         layout: localStorage.getItem('layoutMode') || 'vertical',
                         transcriptPosition: localStorage.getItem('transcriptPosition') || 'below',
@@ -688,7 +721,8 @@
                         statusSize: parseInt(localStorage.getItem('statusSize')) || 12,
                         showTranscript: localStorage.getItem('showTranscript') !== 'false',
                         transcriptColor: localStorage.getItem('transcriptColor') || '#ffffff',
-                        transcriptAlpha: parseFloat(localStorage.getItem('transcriptAlpha')) || 0.9
+                        transcriptAlpha: parseFloat(localStorage.getItem('transcriptAlpha')) || 0.9,
+                        enableThresholds: localStorage.getItem('enableThresholds') !== 'false'
                     }
 
                     console.log('Loading saved settings:', savedSettings)
@@ -771,6 +805,14 @@
                 }
 
                 updateThreshold(threshold) {
+                    // Check if thresholds are enabled (from localStorage or config)
+                    const thresholdsEnabled = localStorage.getItem('enableThresholds')
+                    console.log('Threshold triggered - enableThresholds setting:', thresholdsEnabled)
+                    if (thresholdsEnabled === 'false') {
+                        console.log('Thresholds disabled, keeping base bin color')
+                        return
+                    }
+
                     const binContainer = document.querySelector('.trash-bin-container')
                     const bin = document.querySelector('.trash-bin')
                     const counter = document.querySelector('.counter')
