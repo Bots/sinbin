@@ -1,1317 +1,986 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SinBin Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/styles/tailwind.css" rel="stylesheet">
     <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --border: #334155;
+        }
+
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-            line-height: 1.6;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
-            overflow: hidden;
+        .glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.3);
         }
 
-        .header {
-            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            font-weight: 700;
-            margin-bottom: 15px;
-            letter-spacing: -0.8px;
-        }
-
-        .current-count {
-            font-size: 4em;
-            font-weight: 800;
-            margin: 20px 0;
-            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            letter-spacing: -2px;
-        }
-
-        .count-label {
-            font-size: 1.2em;
-            font-weight: 500;
-            opacity: 0.95;
-        }
-
-        .content {
-            padding: 40px;
-        }
-
-        .section {
-            margin-bottom: 30px;
-            padding: 25px;
-            background: #f8fafc;
+        .card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(51, 65, 85, 0.2);
             border-radius: 12px;
-            border-left: 4px solid #4a90e2;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-        }
-
-        .section h2 {
-            color: #1e293b;
-            margin-bottom: 20px;
-            font-size: 1.4em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-toggle {
-            cursor: pointer;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-        }
-
-        .section-toggle::after {
-            content: '▼';
-            font-size: 0.8em;
-            transition: transform 0.2s ease;
-        }
-
-        .section.collapsed .section-toggle::after {
-            transform: rotate(-90deg);
-        }
-
-        .section-content {
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .section.collapsed .section-content {
-            max-height: 0;
-            margin-top: 0;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            align-items: start;
-        }
-
-        .control-group {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .control-group h3 {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 8px;
-        }
-
-        .control-row {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .control-row:last-child {
-            margin-bottom: 0;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-            color: white;
-            box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-            box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #27ae60 0%, #219a52 100%);
-            color: white;
-            box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
-        }
-
-        .btn-success:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-        }
-
-        .btn-remove {
-            background: #f39c12;
-            color: white;
-            padding: 4px 8px;
-            font-size: 12px;
-            min-width: auto;
-            border-radius: 4px;
-        }
-
-        .btn-remove:hover {
-            background: #e67e22;
-        }
-
-        input[type="text"], select {
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 15px;
-            font-family: inherit;
-            background: white;
-            color: #374151;
-            flex: 1;
-            min-width: 180px;
-            transition: all 0.2s ease;
-        }
-
-        input[type="text"]:focus, select:focus {
-            outline: none;
-            border-color: #4a90e2;
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-        }
-
-        .color-picker-wrapper {
-            position: relative;
-            width: 36px;
-            height: 36px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: border-color 0.2s ease;
-        }
-
-        .color-picker-wrapper:hover {
-            border-color: #4a90e2;
-        }
-
-        input[type="color"] {
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            top: -50%;
-            left: -50%;
-            border: none;
-            cursor: pointer;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-
-        input[type="color"]::-webkit-color-swatch {
-            border: none;
-        }
-
-        input[type="color"]::-moz-color-swatch {
-            border: none;
-        }
-
-        input[type="range"] {
-            flex: 1;
-            max-width: 150px;
-            height: 6px;
-            border-radius: 3px;
-            background: #e2e8f0;
-            outline: none;
-            cursor: pointer;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #4a90e2;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #4a90e2;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 200px;
-        }
-
-        .slider-label {
-            font-size: 13px;
-            font-weight: 500;
-            color: #6b7280;
-            min-width: 60px;
-        }
-
-        .slider-value {
-            min-width: 40px;
-            font-weight: 600;
-            color: #4a90e2;
-            font-size: 14px;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: #4a90e2;
-            cursor: pointer;
-        }
-
-        .checkbox-group label {
-            font-weight: 500;
-            cursor: pointer;
-            color: #374151;
-        }
-
-        .word-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .word-tag {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            color: #374151;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-
-        .word-tag.predefined {
-            border-color: #4a90e2;
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        .word-tag.custom {
-            border-color: #059669;
-            background: #ecfdf5;
-            color: #059669;
-        }
-
-        .status {
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            font-weight: 600;
-            border: 1px solid transparent;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status.connected {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            color: #065f46;
-            border-color: #6ee7b7;
-        }
-
-        .status.disconnected {
-            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
-            color: #7f1d1d;
-            border-color: #fca5a5;
-        }
-
-        .overlay-info {
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-            border: 1px solid #6ee7b7;
-            color: #065f46;
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-        }
-
-        .overlay-url {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-            background: rgba(0, 0, 0, 0.05);
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin: 12px 0;
-            word-break: break-all;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .layout-preview {
-            width: 100%;
-            height: 120px;
-            background: #f1f5f9;
-            border-radius: 8px;
-            border: 2px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 15px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .preview-elements {
-            display: flex;
-            gap: 15px;
-            align-items: center;
             transition: all 0.3s ease;
         }
 
-        .preview-elements.horizontal {
-            flex-direction: row;
+        .card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
         }
 
-        .preview-elements.vertical {
-            flex-direction: column;
-        }
-
-        .preview-bin {
-            width: 24px;
-            height: 24px;
-            background: #6b7280;
-            border-radius: 4px;
-            position: relative;
-            display: flex;
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            font-size: 10px;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
             color: white;
-            font-weight: bold;
-            order: 1;
         }
 
-        .preview-transcript-container {
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(51, 65, 85, 0.5);
+            color: var(--light);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: var(--primary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            border-right: 1px solid hsl(var(--b3));
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .nav-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            order: 2;
+            gap: 0.75rem;
+            padding: 0.875rem 1.5rem;
+            color: hsl(var(--bc) / 0.7);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
         }
 
-        .preview-transcript-container.above {
-            order: 0;
+        .nav-item:hover {
+            background: hsl(var(--p) / 0.1);
+            color: hsl(var(--bc));
+            border-left-color: hsl(var(--p));
         }
 
-        .preview-status {
+        .nav-item.active {
+            background: hsl(var(--p) / 0.15);
+            color: hsl(var(--p));
+            border-left-color: hsl(var(--p));
+        }
+
+        .status-indicator {
             width: 8px;
             height: 8px;
-            background: #10b981;
             border-radius: 50%;
-            flex-shrink: 0;
+            animation: pulse 2s infinite;
         }
 
-        .preview-transcript {
-            width: 60px;
+        .status-connected {
+            background: hsl(var(--su));
+        }
+
+        .status-listening {
+            background: hsl(var(--wa));
+        }
+
+        .status-disconnected {
+            background: hsl(var(--er));
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .counter-display {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-input {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--light);
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table th {
+            background: rgba(51, 65, 85, 0.5);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--light);
+        }
+
+        .table td {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--gray);
+        }
+
+        .table tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .progress-bar {
+            width: 100%;
             height: 8px;
-            background: #9ca3af;
+            background: rgba(51, 65, 85, 0.5);
             border-radius: 4px;
+            overflow: hidden;
         }
 
-        .add-word-form {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s ease;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .drag-drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .drag-drop-zone:hover,
+        .drag-drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
         }
 
         @media (max-width: 768px) {
-            .controls-grid {
-                grid-template-columns: 1fr;
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
 
-            .control-row {
-                flex-direction: column;
-                align-items: stretch;
+            .sidebar.open {
+                transform: translateX(0);
             }
 
-            .slider-group {
-                min-width: auto;
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
             }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🗑️ SinBin Control</h1>
-            <div class="current-count" id="currentCount">0</div>
-            <div class="count-label">Total Penalties</div>
+<body class="bg-base-100 text-base-content min-h-screen transition-colors duration-300">
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle fixed top-4 left-4 z-50 md:hidden btn btn-secondary" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar bg-base-200 text-base-content" id="sidebar">
+        <div class="p-6 border-b border-base-300">
+            <h1 class="text-2xl font-bold flex items-center gap-3">
+                <i class="fas fa-trash-alt text-primary"></i>
+                SinBin
+            </h1>
+            <p class="text-base-content/70 text-sm mt-1">Control Panel</p>
         </div>
 
-        <div class="content">
-            <div class="status disconnected" id="status">
-                ❌ Disconnected from server
+        <nav class="mt-6">
+            <div class="nav-item active" onclick="showTab('dashboard')">
+                <i class="fas fa-tachometer-alt w-5"></i>
+                <span>Dashboard</span>
+                <div class="status-indicator status-disconnected ml-auto" id="connectionStatus"></div>
+            </div>
+            <div class="nav-item" onclick="showTab('words')">
+                <i class="fas fa-list w-5"></i>
+                <span>Word Management</span>
+            </div>
+            <div class="nav-item" onclick="showTab('chat')">
+                <i class="fas fa-comments w-5"></i>
+                <span>Chat Integration</span>
+            </div>
+            <div class="nav-item" onclick="showTab('sounds')">
+                <i class="fas fa-volume-up w-5"></i>
+                <span>Sound Management</span>
+            </div>
+            <div class="nav-item" onclick="showTab('analytics')">
+                <i class="fas fa-chart-line w-5"></i>
+                <span>Analytics</span>
+            </div>
+            <div class="nav-item" onclick="showTab('overlay')">
+                <i class="fas fa-palette w-5"></i>
+                <span>Overlay Styling</span>
+            </div>
+            <div class="nav-item" onclick="showTab('settings')">
+                <i class="fas fa-cog w-5"></i>
+                <span>Settings</span>
+            </div>
+        </nav>
+
+        <div class="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-700">
+            <!-- Theme Toggle -->
+            <div class="mb-4">
+                <button class="btn btn-ghost w-full" onclick="toggleTheme()" id="themeToggle">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <span id="themeText">Light Mode</span>
+                </button>
             </div>
 
-            <div class="overlay-info">
-                <strong>🎥 OBS Browser Source URL:</strong>
-                <div class="overlay-url" id="overlayUrl">http://localhost:3000/overlay.html</div>
-                <p><small>Copy this URL and add it as a Browser Source in OBS. Recommended size: 400x300px for vertical, 600x200px for horizontal layout.</small></p>
-            </div>
+            <button class="btn btn-danger w-full" onclick="resetAll()">
+                <i class="fas fa-redo"></i>
+                Reset All Data
+            </button>
+        </div>
+    </div>
 
-            <!-- Layout & Position Section -->
-            <div class="section">
-                <h2 class="section-toggle">
-                    📐 Layout & Position
-                </h2>
-                <div class="section-content">
-                    <div class="controls-grid">
-                        <div class="control-group">
-                            <h3>Layout Mode</h3>
-                            <div class="control-row">
-                                <select id="layoutMode" onchange="markLayoutChanged()">
-                                    <option value="vertical">Vertical Stack</option>
-                                    <option value="horizontal">Horizontal Row</option>
-                                </select>
-                            </div>
-                            <div class="control-row">
-                                <select id="transcriptPosition" onchange="markLayoutChanged()">
-                                    <option value="below">Transcript Below</option>
-                                    <option value="above">Transcript Above</option>
-                                </select>
-                            </div>
-                            <div class="control-row">
-                                <button class="btn-primary" id="saveLayoutBtn" onclick="saveLayoutSettings()" disabled>
-                                    💾 Save Layout
-                                </button>
-                            </div>
-                            <div class="layout-preview">
-                                <div class="preview-elements vertical" id="layoutPreview">
-                                    <div class="preview-bin">5</div>
-                                    <div class="preview-transcript-container">
-                                        <div class="preview-status"></div>
-                                        <div class="preview-transcript"></div>
-                                    </div>
-                                </div>
-                            </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Live Counter -->
+                <div class="card bg-base-200 shadow-xl p-6 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold">Live Penalty Counter</h2>
+                        <div class="flex gap-2">
+                            <button class="btn btn-success" id="startBtn" onclick="startListening()">
+                                <i class="fas fa-play"></i>
+                                Start
+                            </button>
+                            <button class="btn btn-secondary" id="stopBtn" onclick="stopListening()">
+                                <i class="fas fa-stop"></i>
+                                Stop
+                            </button>
+                            <button class="btn btn-danger" onclick="resetCounter()">
+                                <i class="fas fa-redo"></i>
+                                Reset
+                            </button>
                         </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="counter-display" id="penaltyCounter">0</div>
+                        <p class="text-base-content/70 mt-2">Total Penalties</p>
+                    </div>
+                </div>
 
-                        <div class="control-group">
-                            <h3>Size Settings</h3>
-                            <div class="control-row">
-                                <div class="slider-group">
-                                    <span class="slider-label">Bin Size:</span>
-                                    <input type="range" id="binSize" min="60" max="200" value="80" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="binSizeValue">80px</span>
-                                </div>
-                            </div>
-                            <div class="control-row">
-                                <div class="slider-group">
-                                    <span class="slider-label">Status Size:</span>
-                                    <input type="range" id="statusSize" min="8" max="20" value="12" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="statusSizeValue">12px</span>
-                                </div>
-                            </div>
+                <!-- Quick Stats -->
+                <div class="card bg-base-200 shadow-xl stat-card">
+                    <div class="stat-number text-success" id="sessionCount">0</div>
+                    <p class="text-base-content/70">Session Penalties</p>
+                </div>
+            </div>
+
+            <!-- Live Transcript -->
+            <div class="card bg-base-200 shadow-xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">Live Transcription</h3>
+                <div class="bg-base-300 rounded-lg p-4 min-h-[100px] font-mono text-sm">
+                    <div id="transcript">Waiting for audio input...</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card bg-base-200 shadow-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Recent Penalties</h3>
+                <div class="space-y-3" id="recentPenalties">
+                    <p class="text-base-content/70 text-center py-4">No penalties detected yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Word Management Tab -->
+        <div id="words" class="tab-content">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-2">Word Management</h2>
+                <p class="text-base-content/70">Manage which words trigger penalty detection. Predefined words are built-in profanity, custom words are your additions.</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Add Custom Word -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">Add Custom Word</h3>
+                    <div class="flex gap-3">
+                        <input type="text" id="newWord" class="form-input" placeholder="Enter word to add...">
+                        <button class="btn btn-primary" onclick="addCustomWord()">
+                            <i class="fas fa-plus"></i>
+                            Add
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Word Lists -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">Word Statistics</h3>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-primary" id="predefinedCount">0</div>
+                            <p class="text-gray-400 text-sm">Predefined</p>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-secondary" id="customCount">0</div>
+                            <p class="text-gray-400 text-sm">Custom</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Visual Customization Section -->
-            <div class="section">
-                <h2 class="section-toggle">
-                    🎨 Visual Customization
-                </h2>
-                <div class="section-content">
-                    <div class="controls-grid">
-                        <div class="control-group">
-                            <h3>Background</h3>
-                            <div class="control-row">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="showBackground" checked onchange="markVisualChanged()">
-                                    <label for="showBackground">Enable Background</label>
-                                </div>
-                            </div>
-                            <div class="control-row">
-                                <span class="slider-label">Color:</span>
-                                <div class="color-picker-wrapper">
-                                    <input type="color" id="backgroundColor" value="#000000" onchange="markVisualChanged()">
-                                </div>
-                                <div class="slider-group">
-                                    <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="backgroundAlpha" min="0" max="1" step="0.05" value="0.8" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="backgroundAlphaValue">80%</span>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Custom Words List -->
+            <div class="card p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">Custom Words</h3>
+                <div id="customWordsList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </div>
 
-                        <div class="control-group">
-                            <h3>Trash Bin</h3>
-                            <div class="control-row">
-                                <span class="slider-label">Color:</span>
-                                <div class="color-picker-wrapper">
-                                    <input type="color" id="binColor" value="#ffffff" onchange="markVisualChanged()">
-                                </div>
-                                <div class="slider-group">
-                                    <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="binAlpha" min="0" max="1" step="0.05" value="1" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="binAlphaValue">100%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-group">
-                            <h3>Counter Number</h3>
-                            <div class="control-row">
-                                <span class="slider-label">Color:</span>
-                                <div class="color-picker-wrapper">
-                                    <input type="color" id="counterColor" value="#000000" onchange="markVisualChanged()">
-                                </div>
-                                <div class="slider-group">
-                                    <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="counterAlpha" min="0" max="1" step="0.05" value="1" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="counterAlphaValue">100%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-group">
-                            <h3>Status Dot</h3>
-                            <div class="control-row">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="showStatus" checked onchange="markVisualChanged()">
-                                    <label for="showStatus">Show Status</label>
-                                </div>
-                            </div>
-                            <div class="control-row">
-                                <span class="slider-label">Color:</span>
-                                <div class="color-picker-wrapper">
-                                    <input type="color" id="statusColor" value="#10b981" onchange="markVisualChanged()">
-                                </div>
-                                <div class="slider-group">
-                                    <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="statusAlpha" min="0" max="1" step="0.05" value="1" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="statusAlphaValue">100%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-group">
-                            <h3>Transcript Text</h3>
-                            <div class="control-row">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="showTranscript" checked onchange="markVisualChanged()">
-                                    <label for="showTranscript">Show Transcript</label>
-                                </div>
-                            </div>
-                            <div class="control-row">
-                                <span class="slider-label">Color:</span>
-                                <div class="color-picker-wrapper">
-                                    <input type="color" id="transcriptColor" value="#ffffff" onchange="markVisualChanged()">
-                                </div>
-                                <div class="slider-group">
-                                    <span class="slider-label">Opacity:</span>
-                                    <input type="range" id="transcriptAlpha" min="0" max="1" step="0.05" value="0.9" onchange="markVisualChanged()">
-                                    <span class="slider-value" id="transcriptAlphaValue">90%</span>
-                                </div>
-                            </div>
+        <!-- Chat Integration Tab -->
+        <div id="chat" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chat Connection -->
+                <div class="card bg-base-200 shadow-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Chat Connection</h3>
+                        <div class="flex items-center gap-2">
+                            <div class="status-indicator status-disconnected" id="chatStatus"></div>
+                            <span class="text-sm text-base-content/70" id="chatStatusText">Disconnected</span>
                         </div>
                     </div>
-                    <div class="control-row">
-                        <button class="btn-primary" id="saveVisualBtn" onclick="saveVisualSettings()" disabled>
-                            💾 Save Visual Settings
+                    <p class="text-base-content/70 text-sm mb-4">Connect to Twitch chat to automatically detect profanity in real-time. <strong>OAuth token is required</strong> to send penalty count responses back to chat when profanity is detected.</p>
+
+                    <!-- Error Message Display -->
+                    <div class="alert alert-error mb-4 hidden" id="chatError">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="chatErrorMessage">Connection failed</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Channel Name</label>
+                            <input type="text" id="chatChannel" class="form-input" placeholder="Enter channel name...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Username (Optional)</label>
+                            <input type="text" id="chatUsername" class="form-input" placeholder="Bot username...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">OAuth Token (Required for chat responses)</label>
+                            <input type="password" id="chatOAuth" class="form-input" placeholder="oauth:your_token_here">
+                            <p class="text-xs text-base-content/60 mt-1">
+                                Get OAuth token from <a href="https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/" target="_blank" class="text-primary hover:underline">Twitch Developer Console</a>. Required to send penalty count messages back to chat when profanity is detected.
+                            </p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button class="btn btn-success" onclick="connectChat()">
+                                <i class="fas fa-plug"></i>
+                                Connect
+                            </button>
+                            <button class="btn btn-danger" onclick="disconnectChat()">
+                                <i class="fas fa-unlink"></i>
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Status -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">Chat Status</h3>
+                    <div id="chatStatus" class="space-y-3">
+                        <div class="flex justify-between">
+                            <span>Status:</span>
+                            <span class="text-gray-400" id="chatConnectionStatus">Disconnected</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Channel:</span>
+                            <span class="text-gray-400" id="chatChannelName">None</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Messages Monitored:</span>
+                            <span class="text-gray-400" id="chatMessageCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Statistics -->
+            <div class="card p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">Chat Penalties</h3>
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Word</th>
+                                <th>Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chatPenaltiesTable">
+                            <tr>
+                                <td colspan="4" class="text-center text-gray-400 py-8">No chat penalties yet</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sound Management Tab -->
+        <div id="sounds" class="tab-content">
+            <!-- Upload Section -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">Upload Sound</h3>
+                <div class="drag-drop-zone" id="soundDropZone" onclick="document.getElementById('soundFile').click()">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-lg mb-2">Drop audio files here or click to browse</p>
+                    <p class="text-gray-400 text-sm">Supports MP3, WAV, OGG (Max 5MB)</p>
+                    <input type="file" id="soundFile" accept="audio/*" style="display: none" onchange="uploadSound()">
+                </div>
+            </div>
+
+            <!-- Sound Library -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Sound Library</h3>
+                    <button class="btn btn-secondary" onclick="testSound()">
+                        <i class="fas fa-play"></i>
+                        Test Sound
+                    </button>
+                </div>
+                <div id="soundsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-2">Analytics</h2>
+                <p class="text-base-content/70">View profanity detection statistics. Mic penalties come from speech recognition, chat penalties from Twitch chat monitoring.</p>
+            </div>
+            <!-- Statistics Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="card stat-card">
+                    <div class="stat-number text-primary" id="totalPenalties">0</div>
+                    <p class="text-base-content/70">Total Penalties</p>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-number text-success" id="micPenalties">0</div>
+                    <p class="text-base-content/70">Mic Penalties</p>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-number text-warning" id="chatPenalties">0</div>
+                    <p class="text-base-content/70">Chat Penalties</p>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-number text-secondary" id="uniqueUsers">0</div>
+                    <p class="text-base-content/70">Unique Users</p>
+                </div>
+            </div>
+
+            <!-- Top Users -->
+            <div class="card p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Top Offenders</h3>
+                    <button class="btn btn-secondary" onclick="exportData()">
+                        <i class="fas fa-download"></i>
+                        Export Data
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>User</th>
+                                <th>Penalties</th>
+                                <th>Last Penalty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topUsersTable">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Session Information -->
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold mb-4">Current Session</h3>
+                <div id="sessionInfo" class="space-y-3">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay Styling Tab -->
+        <div id="overlay" class="tab-content">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-2">Overlay Styling</h2>
+                <p class="text-base-content/70">Customize the visual appearance of your browser source overlay for streaming. Changes apply in real-time to <code class="bg-base-300 px-1 rounded">/overlay.html</code></p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Layout & Position -->
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-4">Layout & Position</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="form-label">Layout Direction</label>
+                            <select id="overlayLayout" class="form-input">
+                                <option value="vertical">Vertical</option>
+                                <option value="horizontal">Horizontal</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Transcript Position</label>
+                            <select id="transcriptPosition" class="form-input">
+                                <option value="below">Below Counter</option>
+                                <option value="above">Above Counter</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="showBackground" class="w-4 h-4">
+                            <label class="form-label mb-0">Show Background</label>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="showStatus" class="w-4 h-4">
+                            <label class="form-label mb-0">Show Status Indicator</label>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="showTranscript" class="w-4 h-4">
+                            <label class="form-label mb-0">Show Transcript</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-4">Live Preview</h3>
+                    <div class="bg-black/20 rounded-lg p-4 h-48 flex items-center justify-center">
+                        <div id="miniPreview" class="flex items-center gap-3 scale-50 transform-origin-center">
+                            <div class="w-16 h-16 bg-white rounded flex items-center justify-center relative">
+                                <svg class="w-12 h-12" viewBox="0 0 100 100" fill="currentColor">
+                                    <rect x="20" y="35" width="60" height="50" rx="8"/>
+                                    <rect x="15" y="25" width="70" height="8" rx="4"/>
+                                    <rect x="40" y="15" width="20" height="6" rx="3"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center text-black font-bold">5</div>
+                            </div>
+                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <div class="text-white text-sm">Sample transcript text...</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary w-full mt-4" onclick="previewOverlay()">
+                        <i class="fas fa-eye"></i>
+                        Open Overlay Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- Background Controls -->
+            <div class="card mt-6">
+                <h3 class="text-lg font-semibold mb-4">Background Styling</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="form-label">Background Color</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="backgroundColor" class="w-16 h-10 rounded border border-gray-600" value="#000000">
+                            <input type="text" id="backgroundColorHex" class="form-input flex-1" value="#000000" placeholder="#000000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Background Alpha</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="backgroundAlpha" min="0" max="1" step="0.01" value="0.8" class="flex-1">
+                            <span id="backgroundAlphaValue" class="text-sm font-medium w-12">80%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Gradient Type</label>
+                        <select id="backgroundGradient" class="form-input">
+                            <option value="none">Solid Color</option>
+                            <option value="linear">Linear Gradient</option>
+                            <option value="radial">Radial Gradient</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="gradientControls" class="mt-4 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="form-label">Gradient Color 2</label>
+                            <input type="color" id="backgroundGradientColor" class="w-16 h-10 rounded border border-gray-600" value="#333333">
+                        </div>
+                        <div>
+                            <label class="form-label">Gradient Direction</label>
+                            <input type="range" id="gradientDirection" min="0" max="360" value="180" class="w-full">
+                            <div class="text-center text-sm text-gray-400 mt-1"><span id="gradientDirectionValue">180°</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trash Bin Controls -->
+            <div class="card mt-6">
+                <h3 class="text-lg font-semibold mb-4">Trash Bin Styling</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="form-label">Bin Color</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="binColor" class="w-16 h-10 rounded border border-gray-600" value="#ffffff">
+                            <input type="text" id="binColorHex" class="form-input flex-1" value="#ffffff" placeholder="#ffffff">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Bin Alpha</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="binAlpha" min="0" max="1" step="0.01" value="1" class="flex-1">
+                            <span id="binAlphaValue" class="text-sm font-medium w-12">100%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Bin Size</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="binSize" min="40" max="150" value="80" class="flex-1">
+                            <span id="binSizeValue" class="text-sm font-medium w-12">80px</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Shadow Intensity</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="binShadow" min="0" max="1" step="0.1" value="0.5" class="flex-1">
+                            <span id="binShadowValue" class="text-sm font-medium w-12">50%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Counter Controls -->
+            <div class="card mt-6">
+                <h3 class="text-lg font-semibold mb-4">Counter Styling</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="form-label">Counter Color</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="counterColor" class="w-16 h-10 rounded border border-gray-600" value="#000000">
+                            <input type="text" id="counterColorHex" class="form-input flex-1" value="#000000" placeholder="#000000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Counter Alpha</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="counterAlpha" min="0" max="1" step="0.01" value="1" class="flex-1">
+                            <span id="counterAlphaValue" class="text-sm font-medium w-12">100%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Text Shadow</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="counterShadow" min="0" max="1" step="0.1" value="0.3" class="flex-1">
+                            <span id="counterShadowValue" class="text-sm font-medium w-12">30%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Indicator Controls -->
+            <div class="card mt-6">
+                <h3 class="text-lg font-semibold mb-4">Status Indicator Styling</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="form-label">Connected Color</label>
+                        <input type="color" id="statusConnectedColor" class="w-16 h-10 rounded border border-gray-600" value="#10b981">
+                    </div>
+                    <div>
+                        <label class="form-label">Listening Color</label>
+                        <input type="color" id="statusListeningColor" class="w-16 h-10 rounded border border-gray-600" value="#f59e0b">
+                    </div>
+                    <div>
+                        <label class="form-label">Disconnected Color</label>
+                        <input type="color" id="statusDisconnectedColor" class="w-16 h-10 rounded border border-gray-600" value="#ef4444">
+                    </div>
+                    <div>
+                        <label class="form-label">Status Size</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="statusSize" min="6" max="24" value="12" class="flex-1">
+                            <span id="statusSizeValue" class="text-sm font-medium w-12">12px</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="form-label">Status Alpha</label>
+                    <div class="flex items-center gap-3">
+                        <input type="range" id="statusAlpha" min="0" max="1" step="0.01" value="1" class="flex-1">
+                        <span id="statusAlphaValue" class="text-sm font-medium w-12">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcript Controls -->
+            <div class="card mt-6">
+                <h3 class="text-lg font-semibold mb-4">Transcript Styling</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="form-label">Transcript Color</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="transcriptColor" class="w-16 h-10 rounded border border-gray-600" value="#ffffff">
+                            <input type="text" id="transcriptColorHex" class="form-input flex-1" value="#ffffff" placeholder="#ffffff">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Transcript Alpha</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="transcriptAlpha" min="0" max="1" step="0.01" value="0.9" class="flex-1">
+                            <span id="transcriptAlphaValue" class="text-sm font-medium w-12">90%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Font Weight</label>
+                        <select id="transcriptWeight" class="form-input">
+                            <option value="400">Normal</option>
+                            <option value="500" selected>Medium</option>
+                            <option value="600">Semibold</option>
+                            <option value="700">Bold</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threshold Colors -->
+            <div class="card mt-6">
+                <h3 class="text-lg font-semibold mb-4">Threshold Colors</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="form-label">Warning Color</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="warningColor" class="w-16 h-10 rounded border border-gray-600" value="#f59e0b">
+                            <input type="text" id="warningColorHex" class="form-input flex-1" value="#f59e0b" placeholder="#f59e0b">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Danger Color</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="dangerColor" class="w-16 h-10 rounded border border-gray-600" value="#ef4444">
+                            <input type="text" id="dangerColorHex" class="form-input flex-1" value="#ef4444" placeholder="#ef4444">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4 mt-6">
+                <button class="btn btn-primary" onclick="applyOverlayStyles()">
+                    <i class="fas fa-save"></i>
+                    Apply Changes
+                </button>
+                <button class="btn btn-secondary" onclick="resetOverlayStyles()">
+                    <i class="fas fa-undo"></i>
+                    Reset to Defaults
+                </button>
+                <button class="btn btn-secondary" onclick="exportOverlayTheme()">
+                    <i class="fas fa-download"></i>
+                    Export Theme
+                </button>
+                <button class="btn btn-secondary" onclick="importOverlayTheme()">
+                    <i class="fas fa-upload"></i>
+                    Import Theme
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Thresholds -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">Warning Thresholds</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Warning Threshold</label>
+                            <div class="flex gap-3">
+                                <input type="number" id="warningThreshold" class="form-input" value="5">
+                                <input type="color" id="warningColor" class="w-12 h-10 rounded border border-gray-600" value="#f59e0b">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Danger Threshold</label>
+                            <div class="flex gap-3">
+                                <input type="number" id="dangerThreshold" class="form-input" value="10">
+                                <input type="color" id="dangerColor" class="w-12 h-10 rounded border border-gray-600" value="#ef4444">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveThresholds()">
+                            <i class="fas fa-save"></i>
+                            Save Thresholds
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Auto Reset -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">Auto Reset</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="autoResetEnabled" class="w-4 h-4">
+                            <label>Enable Auto Reset</label>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Reset After (minutes)</label>
+                            <input type="number" id="autoResetDuration" class="form-input" value="30">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveAutoReset()">
+                            <i class="fas fa-save"></i>
+                            Save Settings
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Controls Section -->
-            <div class="section">
-                <h2 class="section-toggle">
-                    ⚙️ Controls
-                </h2>
-                <div class="section-content">
-                    <div class="control-row">
-                        <button class="btn-danger" onclick="resetCounter()">
-                            🗑️ Reset Counter
-                        </button>
-                        <button class="btn-primary" onclick="resetAllSettings()">
-                            🔄 Reset All Settings
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sound Settings Section -->
-            <div class="section">
-                <h2 class="section-toggle">
-                    🔊 Sound Settings
-                </h2>
-                <div class="section-content">
-                    <div class="controls-grid">
-                        <div class="control-group">
-                            <h3>Sound Control</h3>
-                            <div class="control-row">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="soundEnabled" checked onchange="toggleSound()">
-                                    <label for="soundEnabled">Play sound for penalties</label>
-                                </div>
-                            </div>
-                            <div class="control-row">
-                                <div class="slider-group">
-                                    <span class="slider-label">Volume:</span>
-                                    <input type="range" id="soundVolume" min="0" max="1" step="0.1" value="0.3" oninput="updateVolume(this.value)">
-                                    <span class="slider-value" id="volumeDisplay">30%</span>
-                                </div>
-                            </div>
-                            <div class="control-row">
-                                <button class="btn-success" onclick="testSound()">
-                                    🎵 Test Sound
-                                </button>
-                            </div>
+            <!-- Sound Settings -->
+            <div class="card p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">Sound Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Master Volume</label>
+                        <input type="range" id="masterVolume" min="0" max="1" step="0.1" value="0.5" class="w-full">
+                        <div class="flex justify-between text-sm text-gray-400 mt-1">
+                            <span>0%</span>
+                            <span>100%</span>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Custom Words Section -->
-            <div class="section">
-                <h2 class="section-toggle">
-                    ➕ Custom Penalty Words
-                </h2>
-                <div class="section-content">
-                    <div class="add-word-form">
-                        <input type="text" id="newWord" placeholder="Enter new penalty word..." maxlength="50">
-                        <button class="btn-success" onclick="addCustomWord()">
-                            Add Word
+                    <div class="flex items-end">
+                        <button class="btn btn-primary" onclick="saveSoundSettings()">
+                            <i class="fas fa-save"></i>
+                            Save Settings
                         </button>
-                    </div>
-                    <div class="word-list" id="customWords">
-                        <!-- Custom words will be loaded here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Predefined Words Section -->
-            <div class="section collapsed">
-                <h2 class="section-toggle">
-                    📋 Predefined Penalty Words
-                </h2>
-                <div class="section-content">
-                    <div class="word-list" id="predefinedWords">
-                        <!-- Predefined words will be loaded here -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        class SinBinControl {
-            constructor() {
-                this.socket = io();
-                this.currentCount = 0;
-                this.pendingChanges = {
-                    layout: {},
-                    visual: {}
-                };
-                this.setupSocketEvents();
-                this.loadWords();
-                this.updateOverlayUrl();
-                this.loadSoundSettings();
-                this.loadDisplaySettings();
-                this.setupEventListeners();
-                this.initializeSectionToggles();
-
-                // Initialize save button states
-                setTimeout(() => this.updateSaveButtonStates(), 100);
-            }
-
-            setupEventListeners() {
-                // Enter key support for adding words
-                document.getElementById('newWord').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.addCustomWord();
-                    }
-                });
-
-                // Slider value display updates
-                const sliders = ['backgroundAlpha', 'binAlpha', 'counterAlpha', 'statusAlpha', 'transcriptAlpha', 'binSize', 'statusSize'];
-                sliders.forEach(sliderId => {
-                    const slider = document.getElementById(sliderId);
-                    const valueDisplay = document.getElementById(sliderId + 'Value');
-                    if (slider && valueDisplay) {
-                        slider.addEventListener('input', () => {
-                            const value = parseFloat(slider.value);
-                            if (sliderId.includes('Alpha')) {
-                                valueDisplay.textContent = Math.round(value * 100) + '%';
-                            } else {
-                                valueDisplay.textContent = value + 'px';
-                            }
-                        });
-                    }
-                });
-            }
-
-            initializeSectionToggles() {
-                document.querySelectorAll('.section-toggle').forEach(toggle => {
-                    toggle.addEventListener('click', () => {
-                        const section = toggle.parentElement;
-                        section.classList.toggle('collapsed');
-                    });
-                });
-            }
-
-            loadDisplaySettings() {
-                // Layout settings
-                const layout = localStorage.getItem('layoutMode') || 'vertical';
-                const transcriptPos = localStorage.getItem('transcriptPosition') || 'below';
-
-                document.getElementById('layoutMode').value = layout;
-                document.getElementById('transcriptPosition').value = transcriptPos;
-                this.updateLayoutPreview();
-
-                // Color settings
-                const settings = {
-                    showBackground: localStorage.getItem('showBackground') !== 'false',
-                    backgroundColor: localStorage.getItem('backgroundColor') || '#000000',
-                    backgroundAlpha: parseFloat(localStorage.getItem('backgroundAlpha') || '0.8'),
-                    binColor: localStorage.getItem('binColor') || '#ffffff',
-                    binAlpha: parseFloat(localStorage.getItem('binAlpha') || '1'),
-                    binSize: parseInt(localStorage.getItem('binSize') || '80'),
-                    counterColor: localStorage.getItem('counterColor') || '#000000',
-                    counterAlpha: parseFloat(localStorage.getItem('counterAlpha') || '1'),
-                    showStatus: localStorage.getItem('showStatus') !== 'false',
-                    statusColor: localStorage.getItem('statusColor') || '#10b981',
-                    statusAlpha: parseFloat(localStorage.getItem('statusAlpha') || '1'),
-                    statusSize: parseInt(localStorage.getItem('statusSize') || '12'),
-                    showTranscript: localStorage.getItem('showTranscript') !== 'false',
-                    transcriptColor: localStorage.getItem('transcriptColor') || '#ffffff',
-                    transcriptAlpha: parseFloat(localStorage.getItem('transcriptAlpha') || '0.9')
-                };
-
-                // Apply settings to form elements
-                Object.keys(settings).forEach(key => {
-                    const element = document.getElementById(key);
-                    if (element) {
-                        if (element.type === 'checkbox') {
-                            element.checked = settings[key];
-                        } else {
-                            element.value = settings[key];
-                        }
-
-                        // Update value displays
-                        const valueDisplay = document.getElementById(key + 'Value');
-                        if (valueDisplay) {
-                            if (key.includes('Alpha')) {
-                                valueDisplay.textContent = Math.round(settings[key] * 100) + '%';
-                            } else if (key.includes('Size')) {
-                                valueDisplay.textContent = settings[key] + 'px';
-                            }
-                        }
-                    }
-                });
-
-                // Apply settings immediately
-                this.updateDisplayOptions();
-            }
-
-            updateLayoutPreview() {
-                const layout = document.getElementById('layoutMode').value;
-                const transcriptPos = document.getElementById('transcriptPosition').value;
-                const preview = document.getElementById('layoutPreview');
-                const transcriptContainer = preview.querySelector('.preview-transcript-container');
-
-                preview.className = `preview-elements ${layout}`;
-
-                if (transcriptPos === 'above') {
-                    transcriptContainer.classList.add('above');
-                } else {
-                    transcriptContainer.classList.remove('above');
-                }
-            }
-
-            loadSoundSettings() {
-                const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-                const soundVolume = parseFloat(localStorage.getItem('soundVolume') || '0.3');
-
-                document.getElementById('soundEnabled').checked = soundEnabled;
-                document.getElementById('soundVolume').value = soundVolume;
-                document.getElementById('volumeDisplay').textContent = Math.round(soundVolume * 100) + '%';
-            }
-
-            setupSocketEvents() {
-                this.socket.on('connect', () => {
-                    console.log('Connected to server');
-                    this.updateStatus(true);
-                    this.loadCurrentCount();
-                });
-
-                this.socket.on('disconnect', () => {
-                    console.log('Disconnected from server');
-                    this.updateStatus(false);
-                });
-
-                this.socket.on('countUpdate', (count) => {
-                    this.updateCountDisplay(count);
-                });
-            }
-
-            updateStatus(connected) {
-                const status = document.getElementById('status');
-                if (connected) {
-                    status.className = 'status connected';
-                    status.innerHTML = '✅ Connected to server';
-                } else {
-                    status.className = 'status disconnected';
-                    status.innerHTML = '❌ Disconnected from server';
-                }
-            }
-
-            updateCountDisplay(count) {
-                this.currentCount = count;
-                document.getElementById('currentCount').textContent = count;
-            }
-
-            updateOverlayUrl() {
-                const url = `${window.location.protocol}//${window.location.host}/overlay.html`;
-                document.getElementById('overlayUrl').textContent = url;
-            }
-
-            async loadCurrentCount() {
-                try {
-                    const response = await fetch('/api/count');
-                    const data = await response.json();
-                    this.updateCountDisplay(data.count);
-                } catch (error) {
-                    console.error('Error loading current count:', error);
-                }
-            }
-
-            async loadWords() {
-                try {
-                    const response = await fetch('/api/words');
-                    const data = await response.json();
-
-                    this.displayWords('predefinedWords', data.predefined, false);
-                    this.displayWords('customWords', data.custom, true);
-                } catch (error) {
-                    console.error('Error loading words:', error);
-                }
-            }
-
-            displayWords(containerId, words, showRemoveButton) {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-
-                words.forEach(word => {
-                    const wordTag = document.createElement('div');
-                    wordTag.className = `word-tag ${showRemoveButton ? 'custom' : 'predefined'}`;
-
-                    wordTag.innerHTML = `
-                        <span>${word}</span>
-                        ${showRemoveButton ? `<button class="btn-remove" onclick="removeCustomWord('${word}')">×</button>` : ''}
-                    `;
-
-                    container.appendChild(wordTag);
-                });
-
-                if (words.length === 0) {
-                    container.innerHTML = '<p style="color: #6b7280; font-style: italic;">No words yet</p>';
-                }
-            }
-
-            async addCustomWord() {
-                const input = document.getElementById('newWord');
-                const word = input.value.trim().toLowerCase();
-
-                if (!word) {
-                    alert('Please enter a word');
-                    return;
-                }
-
-                try {
-                    const response = await fetch('/api/add-word', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ word }),
-                    });
-
-                    if (response.ok) {
-                        input.value = '';
-                        this.loadWords();
-                        console.log(`Added custom word: ${word}`);
-                    } else {
-                        const error = await response.json();
-                        alert(error.error || 'Failed to add word');
-                    }
-                } catch (error) {
-                    console.error('Error adding word:', error);
-                    alert('Error adding word');
-                }
-            }
-
-            async removeCustomWord(word) {
-                if (!confirm(`Remove "${word}" from custom penalty words?`)) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/api/remove-word/${encodeURIComponent(word)}`, {
-                        method: 'DELETE',
-                    });
-
-                    if (response.ok) {
-                        this.loadWords();
-                        console.log(`Removed custom word: ${word}`);
-                    } else {
-                        alert('Failed to remove word');
-                    }
-                } catch (error) {
-                    console.error('Error removing word:', error);
-                    alert('Error removing word');
-                }
-            }
-
-            async resetCounter() {
-                if (!confirm('Are you sure you want to reset the penalty counter to 0?')) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch('/api/reset', {
-                        method: 'POST',
-                    });
-
-                    if (response.ok) {
-                        console.log('Counter reset successfully');
-                    } else {
-                        alert('Failed to reset counter');
-                    }
-                } catch (error) {
-                    console.error('Error resetting counter:', error);
-                    alert('Error resetting counter');
-                }
-            }
-
-            updateDisplayOptions() {
-                const options = {
-                    layout: document.getElementById('layoutMode').value,
-                    transcriptPosition: document.getElementById('transcriptPosition').value,
-                    showBackground: document.getElementById('showBackground').checked,
-                    backgroundColor: document.getElementById('backgroundColor').value,
-                    backgroundAlpha: parseFloat(document.getElementById('backgroundAlpha').value),
-                    binColor: document.getElementById('binColor').value,
-                    binAlpha: parseFloat(document.getElementById('binAlpha').value),
-                    binSize: parseInt(document.getElementById('binSize').value),
-                    counterColor: document.getElementById('counterColor').value,
-                    counterAlpha: parseFloat(document.getElementById('counterAlpha').value),
-                    showStatus: document.getElementById('showStatus').checked,
-                    statusColor: document.getElementById('statusColor').value,
-                    statusAlpha: parseFloat(document.getElementById('statusAlpha').value),
-                    statusSize: parseInt(document.getElementById('statusSize').value),
-                    showTranscript: document.getElementById('showTranscript').checked,
-                    transcriptColor: document.getElementById('transcriptColor').value,
-                    transcriptAlpha: parseFloat(document.getElementById('transcriptAlpha').value)
-                };
-
-                // Save to localStorage
-                Object.keys(options).forEach(key => {
-                    localStorage.setItem(key, options[key]);
-                });
-
-                // Update layout preview
-                this.updateLayoutPreview();
-
-                // Send to overlay
-                this.socket.emit('displayOptionsUpdate', options);
-                console.log('Display options updated:', options);
-                console.log('binSize value:', options.binSize);
-            }
-
-            resetAllSettings() {
-                if (!confirm('Are you sure you want to reset all visual settings to default?')) {
-                    return;
-                }
-
-                // Clear localStorage
-                const settingsKeys = [
-                    'layoutMode', 'transcriptPosition', 'showBackground', 'backgroundColor', 'backgroundAlpha',
-                    'binColor', 'binAlpha', 'binSize', 'counterColor', 'counterAlpha',
-                    'showStatus', 'statusColor', 'statusAlpha', 'statusSize',
-                    'showTranscript', 'transcriptColor', 'transcriptAlpha'
-                ];
-
-                settingsKeys.forEach(key => localStorage.removeItem(key));
-
-                // Clear pending changes
-                this.pendingChanges.layout = {};
-                this.pendingChanges.visual = {};
-                this.updateSaveButtonStates();
-
-                // Reload settings
-                this.loadDisplaySettings();
-            }
-
-            // Pending changes management
-            markLayoutChanged() {
-                this.pendingChanges.layout = {
-                    layoutMode: document.getElementById('layoutMode').value,
-                    transcriptPosition: document.getElementById('transcriptPosition').value
-                };
-                this.updateSaveButtonStates();
-            }
-
-            markVisualChanged() {
-                this.pendingChanges.visual = {
-                    showBackground: document.getElementById('showBackground').checked,
-                    backgroundColor: document.getElementById('backgroundColor').value,
-                    backgroundAlpha: parseFloat(document.getElementById('backgroundAlpha').value),
-                    binColor: document.getElementById('binColor').value,
-                    binAlpha: parseFloat(document.getElementById('binAlpha').value),
-                    binSize: parseInt(document.getElementById('binSize').value),
-                    counterColor: document.getElementById('counterColor').value,
-                    counterAlpha: parseFloat(document.getElementById('counterAlpha').value),
-                    showStatus: document.getElementById('showStatus').checked,
-                    statusColor: document.getElementById('statusColor').value,
-                    statusAlpha: parseFloat(document.getElementById('statusAlpha').value),
-                    statusSize: parseInt(document.getElementById('statusSize').value),
-                    showTranscript: document.getElementById('showTranscript').checked,
-                    transcriptColor: document.getElementById('transcriptColor').value,
-                    transcriptAlpha: parseFloat(document.getElementById('transcriptAlpha').value)
-                };
-                this.updateSaveButtonStates();
-            }
-
-            updateSaveButtonStates() {
-                const layoutBtn = document.getElementById('saveLayoutBtn');
-                const visualBtn = document.getElementById('saveVisualBtn');
-
-                if (layoutBtn) {
-                    layoutBtn.disabled = Object.keys(this.pendingChanges.layout).length === 0;
-                }
-                if (visualBtn) {
-                    visualBtn.disabled = Object.keys(this.pendingChanges.visual).length === 0;
-                }
-            }
-
-            saveLayoutSettings() {
-                if (Object.keys(this.pendingChanges.layout).length === 0) return;
-
-                // Save to localStorage
-                Object.keys(this.pendingChanges.layout).forEach(key => {
-                    localStorage.setItem(key, this.pendingChanges.layout[key]);
-                });
-
-                // Apply changes - send the actual saved values, not current UI values
-                const options = {
-                    ...this.pendingChanges.layout,
-                    // Include visual settings from localStorage for complete update
-                    showBackground: localStorage.getItem('showBackground') !== 'false',
-                    backgroundColor: localStorage.getItem('backgroundColor') || '#000000',
-                    backgroundAlpha: parseFloat(localStorage.getItem('backgroundAlpha')) || 0.8,
-                    binColor: localStorage.getItem('binColor') || '#ffffff',
-                    binAlpha: parseFloat(localStorage.getItem('binAlpha')) || 1,
-                    binSize: parseInt(localStorage.getItem('binSize')) || 80,
-                    counterColor: localStorage.getItem('counterColor') || '#000000',
-                    counterAlpha: parseFloat(localStorage.getItem('counterAlpha')) || 1,
-                    showStatus: localStorage.getItem('showStatus') !== 'false',
-                    statusColor: localStorage.getItem('statusColor') || '#10b981',
-                    statusAlpha: parseFloat(localStorage.getItem('statusAlpha')) || 1,
-                    statusSize: parseInt(localStorage.getItem('statusSize')) || 12,
-                    showTranscript: localStorage.getItem('showTranscript') !== 'false',
-                    transcriptColor: localStorage.getItem('transcriptColor') || '#ffffff',
-                    transcriptAlpha: parseFloat(localStorage.getItem('transcriptAlpha')) || 0.9
-                };
-
-                // Send to overlay
-                this.socket.emit('displayOptionsUpdate', options);
-                console.log('Sending saved layout settings to overlay:', options);
-
-                // Clear pending changes
-                this.pendingChanges.layout = {};
-                this.updateSaveButtonStates();
-
-                console.log('Layout settings saved');
-            }
-
-            saveVisualSettings() {
-                if (Object.keys(this.pendingChanges.visual).length === 0) return;
-
-                console.log('Saving visual settings:', this.pendingChanges.visual);
-
-                // Save to localStorage
-                Object.keys(this.pendingChanges.visual).forEach(key => {
-                    localStorage.setItem(key, this.pendingChanges.visual[key]);
-                });
-
-                // Apply changes - send the actual saved values, not current UI values
-                const options = {
-                    ...this.pendingChanges.visual,
-                    // Include layout settings too for complete update
-                    layout: localStorage.getItem('layoutMode') || 'vertical',
-                    transcriptPosition: localStorage.getItem('transcriptPosition') || 'below'
-                };
-
-                // Send to overlay
-                this.socket.emit('displayOptionsUpdate', options);
-                console.log('Sending saved visual settings to overlay:', options);
-
-                // Clear pending changes
-                this.pendingChanges.visual = {};
-                this.updateSaveButtonStates();
-
-                console.log('Visual settings saved and applied');
-            }
-        }
-
-        // Global functions for button clicks
-        let sinBinControl;
-
-        function updateDisplayOptions() {
-            sinBinControl.updateDisplayOptions();
-        }
-
-        function addCustomWord() {
-            sinBinControl.addCustomWord();
-        }
-
-        function removeCustomWord(word) {
-            sinBinControl.removeCustomWord(word);
-        }
-
-        function resetCounter() {
-            sinBinControl.resetCounter();
-        }
-
-        function resetAllSettings() {
-            sinBinControl.resetAllSettings();
-        }
-
-        function toggleSound() {
-            const enabled = document.getElementById('soundEnabled').checked;
-            fetch('/api/sound-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled })
-            }).catch(console.error);
-
-            localStorage.setItem('soundEnabled', enabled.toString());
-        }
-
-        function updateVolume(value) {
-            const volume = parseFloat(value);
-            document.getElementById('volumeDisplay').textContent = Math.round(volume * 100) + '%';
-
-            fetch('/api/sound-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ volume })
-            }).catch(console.error);
-
-            localStorage.setItem('soundVolume', value);
-        }
-
-        function testSound() {
-            fetch('/api/test-sound', { method: 'POST' }).catch(console.error);
-        }
-
-        function markLayoutChanged() {
-            sinBinControl.markLayoutChanged();
-        }
-
-        function markVisualChanged() {
-            sinBinControl.markVisualChanged();
-        }
-
-        function saveLayoutSettings() {
-            sinBinControl.saveLayoutSettings();
-        }
-
-        function saveVisualSettings() {
-            sinBinControl.saveVisualSettings();
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            sinBinControl = new SinBinControl();
-        });
-    </script>
+    <script src="/js/app.js"></script>
 </body>
 </html>

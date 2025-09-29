@@ -249,6 +249,20 @@ export class Database {
         })
     }
 
+    async getUser(username: string): Promise<UserRecord | null> {
+        return new Promise((resolve, reject) => {
+            const sql = 'SELECT * FROM users WHERE username = ?'
+
+            this.db.get(sql, [username], (err, row: any) => {
+                if (err) {
+                    reject(err)
+                } else {
+                    resolve(row ? row as UserRecord : null)
+                }
+            })
+        })
+    }
+
     // Settings methods
     async getSetting(key: string): Promise<string | null> {
         return new Promise((resolve, reject) => {

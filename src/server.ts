@@ -579,6 +579,88 @@ class SwearJarService {
 
             res.json({ success: true, message: 'Sound play triggered' })
         })
+
+        // Additional endpoints for the modern control panel
+        this.app.post('/api/thresholds', async (req, res) => {
+            try {
+                const { warning, danger } = req.body
+                if (warning) {
+                    await this.database.setSetting('warning_threshold', warning.count.toString())
+                    await this.database.setSetting('warning_color', warning.color)
+                }
+                if (danger) {
+                    await this.database.setSetting('danger_threshold', danger.count.toString())
+                    await this.database.setSetting('danger_color', danger.color)
+                }
+                res.json({ success: true })
+            } catch (error) {
+                console.error('Error saving thresholds:', error)
+                res.status(500).json({ error: 'Failed to save thresholds' })
+            }
+        })
+
+        this.app.post('/api/auto-reset', async (req, res) => {
+            try {
+                const { enabled, duration } = req.body
+                await this.database.setSetting('auto_reset_enabled', enabled.toString())
+                await this.database.setSetting('auto_reset_duration', duration.toString())
+                res.json({ success: true })
+            } catch (error) {
+                console.error('Error saving auto-reset settings:', error)
+                res.status(500).json({ error: 'Failed to save auto-reset settings' })
+            }
+        })
+
+        this.app.post('/api/reset-session', async (req, res) => {
+            try {
+                const activeSession = await this.database.getActiveSession()
+                if (activeSession && activeSession.id) {
+                    await this.database.updateSession(activeSession.id, {
+                        active: false,
+                        end_time: new Date().toISOString()
+                    })
+                }
+                // Create new session
+                await this.database.createSession()
+                res.json({ success: true })
+            } catch (error) {
+                console.error('Error resetting session:', error)
+                res.status(500).json({ error: 'Failed to reset session' })
+            }
+        })
+
+        this.app.get('/api/export', async (req, res) => {
+            try {
+                const activeSession = await this.database.getActiveSession()
+                const penalties = await this.database.getPenalties(1000) // Get last 1000 penalties
+                const users = await this.database.getTopUsers(50)
+
+                const exportData = {
+                    session: activeSession,
+                    penalties,
+                    users,
+                    exportedAt: new Date().toISOString()
+                }
+
+                res.json(exportData)
+            } catch (error) {
+                console.error('Error exporting data:', error)
+                res.status(500).json({ error: 'Failed to export data' })
+            }
+        })
+
+        this.app.post('/api/reset-all', async (req, res) => {
+            try {
+                // This would require database methods to clear all data
+                // For now, just reset the counter
+                this.swearCount = 0
+                this.io.emit('countUpdate', this.swearCount)
+                res.json({ success: true })
+            } catch (error) {
+                console.error('Error resetting all data:', error)
+                res.status(500).json({ error: 'Failed to reset all data' })
+            }
+        })
     }
 
     private setupWebSocket() {
@@ -975,6 +1057,9 @@ class SwearJarService {
                 })
             }
 
+            // Auto-play penalty sound if sounds are available
+            await this.playPenaltySound()
+
             // Update session stats
             if (this.currentSessionId) {
                 const session = await this.database.getActiveSession()
@@ -995,6 +1080,43 @@ class SwearJarService {
 
         } catch (error) {
             console.error('Error adding penalties:', error)
+        }
+    }
+
+    private async playPenaltySound() {
+        try {
+            // Get available penalty sounds from database
+            const soundsJson = await this.database.getSetting('custom_sounds') || '[]'
+            const sounds = JSON.parse(soundsJson)
+            
+            // Filter for penalty category sounds
+            const penaltySounds = sounds.filter((sound: any) => 
+                sound.category === 'penalty' || !sound.category
+            )
+            
+            if (penaltySounds.length > 0) {
+                // Randomly select a penalty sound
+                const randomSound = penaltySounds[Math.floor(Math.random() * penaltySounds.length)]
+                
+                // Get sound settings (default to enabled with 50% volume)
+                const soundEnabled = await this.database.getSetting('sound_enabled')
+                const volume = parseFloat(await this.database.getSetting('sound_volume') || '0.5')
+                
+                // Default to enabled if setting doesn't exist
+                if (soundEnabled !== 'false') {
+                    // Emit sound play event to connected clients
+                    this.io.emit('soundPlay', {
+                        file: `/sounds/${randomSound.filename}`,
+                        volume: volume
+                    })
+                    
+                    console.log(`Playing penalty sound: ${randomSound.description || randomSound.filename} at volume ${Math.round(volume * 100)}%`)
+                }
+            } else {
+                console.log('No penalty sounds available for playback')
+            }
+        } catch (error) {
+            console.error('Error playing penalty sound:', error)
         }
     }
 

@@ -2,3 +2,15 @@ node_modules
 google-credentials.json
 .env
 .serena
+dist/
+
+# Database files (contain personal data)
+*.db
+*.db-*
+sinbin.db*
+
+# Uploaded sound files (personal content)
+public/sounds/
+
+# Legacy config files
+swear-jar-config.json*

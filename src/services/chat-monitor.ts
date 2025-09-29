@@ -55,8 +55,9 @@ export class ChatMonitor {
             this.setupEventHandlers()
 
             // Connect to chat
+            console.log(`Attempting to connect to Twitch chat: #${channel}`)
             await this.client.connect()
-            console.log(`Connected to Twitch chat: #${channel}`)
+            console.log(`Successfully connected to Twitch chat: #${channel}`)
             this.isConnected = true
 
         } catch (error) {
@@ -84,6 +85,8 @@ export class ChatMonitor {
 
             const username = userstate.username || 'unknown'
             const displayName = userstate['display-name'] || username
+
+            console.log(`Chat message received: ${displayName}: ${message}`)
 
             try {
                 // Update user message count
@@ -120,11 +123,16 @@ export class ChatMonitor {
         const messageWords = message.toLowerCase().split(/\s+/)
         const penalties: PenaltyEvent[] = []
 
+        console.log(`Checking message for profanity: "${message}"`)
+        console.log(`Available words for detection: ${allWords.length} words`)
+        console.log(`Message words: [${messageWords.join(', ')}]`)
+
         // Check cooldown for this user
         const lastPenaltyTime = this.userCooldowns.get(username) || 0
         const now = Date.now()
 
         if (now - lastPenaltyTime < this.COOLDOWN_MS) {
+            console.log(`User ${username} is on cooldown, skipping penalty detection`)
             return penalties // User is on cooldown
         }
 
@@ -133,6 +141,7 @@ export class ChatMonitor {
             const cleanWord = word.replace(/[^\w]/g, '').toLowerCase()
 
             if (cleanWord && allWords.includes(cleanWord)) {
+                console.log(`PROFANITY DETECTED: "${cleanWord}" in message`)
                 penalties.push({
                     word: cleanWord,
                     source: 'chat',
@@ -177,8 +186,33 @@ export class ChatMonitor {
 
             console.log(`Chat penalties: ${username} - ${penalties.map(p => p.word).join(', ')}`)
 
+            // Send chat response with penalty count
+            await this.sendPenaltyResponse(username, penalties.length)
+
         } catch (error) {
             console.error('Error handling chat penalties:', error)
+        }
+    }
+
+    private async sendPenaltyResponse(username: string, currentPenalties: number): Promise<void> {
+        if (!this.client || !this.isConnected) return
+
+        try {
+            // Get user's total penalty count
+            const user = await this.database.getUser(username)
+            const totalPenalties = user?.penalty_count || currentPenalties
+
+            // Get channel name (first channel from client)
+            const channels = this.client.getChannels()
+            if (channels.length === 0) return
+
+            const channel = channels[0] // Format: "#channelname"
+            const message = `@${username} Penalty detected! Your total: ${totalPenalties}`
+
+            await this.client.say(channel, message)
+            console.log(`Sent penalty response to ${username}: ${message}`)
+        } catch (error) {
+            console.error('Error sending penalty response:', error)
         }
     }
 

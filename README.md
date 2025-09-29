@@ -70,9 +70,28 @@ The application will be available at:
 
 ## Configuration
 
+### First-Time Setup
+
+The application will automatically create a local SQLite database (`sinbin.db`) on first run to store:
+- Penalty counts and session data
+- Custom words and settings
+- Uploaded sound files metadata
+
+A `public/sounds/` directory will also be created for storing uploaded audio files.
+
+**Note**: These files contain personal data and are excluded from version control.
+
 ### Audio Setup
 
 Ensure your microphone is properly configured and accessible to the application. The system will automatically detect your default input device.
+
+### Sound Effects
+
+You can upload custom sound effects through the control panel:
+1. Navigate to the "Sounds" tab in the control panel
+2. Upload audio files (MP3, WAV, etc.) with category "penalty"
+3. Sounds will automatically play when profanity is detected
+4. Adjust volume and enable/disable sounds in the settings
 
 ### Customization Options
 
