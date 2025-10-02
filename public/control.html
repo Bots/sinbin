@@ -642,7 +642,7 @@
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Layout & Position -->
-                <div class="card">
+                <div class="card p-6">
                     <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('layoutSection')">
                         <h3 class="text-lg font-semibold">Layout & Position</h3>
                         <i class="fas fa-chevron-down transition-transform" id="layoutSectionIcon"></i>
@@ -678,7 +678,7 @@
                 </div>
 
                 <!-- Live Preview -->
-                <div class="card">
+                <div class="card p-6">
                     <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('previewSection')">
                         <h3 class="text-lg font-semibold">Live Preview</h3>
                         <i class="fas fa-chevron-down transition-transform" id="previewSectionIcon"></i>
@@ -707,7 +707,7 @@
             </div>
 
             <!-- Background Controls -->
-            <div class="card mt-6">
+            <div class="card mt-6 p-6">
                 <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('backgroundSection')">
                     <h3 class="text-lg font-semibold">Background Styling</h3>
                     <i class="fas fa-chevron-down transition-transform" id="backgroundSectionIcon"></i>
@@ -754,7 +754,7 @@
             </div>
 
             <!-- Trash Bin Controls -->
-            <div class="card mt-6">
+            <div class="card mt-6 p-6">
                 <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('binSection')">
                     <h3 class="text-lg font-semibold">Trash Bin Styling</h3>
                     <i class="fas fa-chevron-down transition-transform" id="binSectionIcon"></i>
@@ -794,7 +794,7 @@
             </div>
 
             <!-- Counter Controls -->
-            <div class="card mt-6">
+            <div class="card mt-6 p-6">
                 <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('counterSection')">
                     <h3 class="text-lg font-semibold">Counter Styling</h3>
                     <i class="fas fa-chevron-down transition-transform" id="counterSectionIcon"></i>
@@ -827,7 +827,7 @@
             </div>
 
             <!-- Status Indicator Controls -->
-            <div class="card mt-6">
+            <div class="card mt-6 p-6">
                 <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('statusSection')">
                     <h3 class="text-lg font-semibold">Status Indicator Styling</h3>
                     <i class="fas fa-chevron-down transition-transform" id="statusSectionIcon"></i>
@@ -835,11 +835,11 @@
                 <div id="statusSection">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                        <label class="form-label">Connected Color</label>
+                        <label class="form-label">Connected/Listening Color</label>
                         <input type="color" id="statusConnectedColor" class="w-16 h-10 rounded border border-gray-600" value="#10b981">
                     </div>
                     <div>
-                        <label class="form-label">Listening Color</label>
+                        <label class="form-label">Connecting Color</label>
                         <input type="color" id="statusListeningColor" class="w-16 h-10 rounded border border-gray-600" value="#f59e0b">
                     </div>
                     <div>
@@ -865,7 +865,7 @@
             </div>
 
             <!-- Transcript Controls -->
-            <div class="card mt-6">
+            <div class="card mt-6 p-6">
                 <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('transcriptSection')">
                     <h3 class="text-lg font-semibold">Transcript Styling</h3>
                     <i class="fas fa-chevron-down transition-transform" id="transcriptSectionIcon"></i>
@@ -900,7 +900,7 @@
             </div>
 
             <!-- Threshold Colors -->
-            <div class="card mt-6">
+            <div class="card mt-6 p-6">
                 <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('thresholdSection')">
                     <h3 class="text-lg font-semibold">Warning Thresholds</h3>
                     <i class="fas fa-chevron-down transition-transform" id="thresholdSectionIcon"></i>
@@ -913,7 +913,6 @@
                             <div class="flex gap-3">
                                 <input type="number" id="warningThreshold" class="form-input" value="5" min="1" max="100">
                                 <input type="color" id="warningColor" class="w-16 h-10 rounded border border-gray-600" value="#f59e0b">
-                                <input type="text" id="warningColorHex" class="form-input flex-1" value="#f59e0b" placeholder="#f59e0b">
                             </div>
                         </div>
                         <div>
@@ -921,7 +920,6 @@
                             <div class="flex gap-3">
                                 <input type="number" id="dangerThreshold" class="form-input" value="10" min="1" max="100">
                                 <input type="color" id="dangerColor" class="w-16 h-10 rounded border border-gray-600" value="#ef4444">
-                                <input type="text" id="dangerColorHex" class="form-input flex-1" value="#ef4444" placeholder="#ef4444">
                             </div>
                         </div>
                     </div>
