@@ -177,6 +177,13 @@
                 transform: translate(-50%, -50%);
             }
 
+            /* Position offscreen immediately when preparing to scroll to avoid a centered flash */
+            .transcript-text.scroll-prep {
+                left: 100% !important;
+                transform: translate(0%, -50%) !important;
+                transition: none !important;
+            }
+
             /* Single pass scrolling animation for long text */
             .transcript-text.scrolling {
                 animation: slide-right-to-left 8s linear forwards;
@@ -448,9 +455,9 @@
                         this.updateDisplayOptions(options)
                     )
 
-                    // Show live transcription text
-                    this.socket.on('transcriptUpdate', (text) =>
-                        this.updateTranscript(text)
+                    // Show live transcription text (accept string or object payloads)
+                    this.socket.on('transcriptUpdate', (payload) =>
+                        this.updateTranscript(payload)
                     )
 
                     // Handle status updates from server
@@ -509,29 +516,74 @@
                     }, 200)
                 }
 
-                updateTranscript(text) {
+                updateTranscript(payload) {
                     if (!this.config.showTranscript) return
 
-                    // Update transcript text, use placeholder if empty
-                    const displayText = text || 'Listening for audio...'
-                    this.elements.transcript.textContent = displayText
+                    // Support legacy string payloads
+                    let text = ''
+                    let mode = 'immediate' // 'immediate' | 'scroll'
+                    let final = false
 
-                    // Reset animation and check if scrolling is needed
-                    this.elements.transcript.classList.remove('scrolling')
-
-                    // Force reflow to reset animation
-                    this.elements.transcript.offsetHeight
-
-                    // Check if text needs scrolling after a short delay
-                    setTimeout(() => {
-                        const wrapper = this.elements.transcriptContainer.querySelector('.transcript-wrapper')
-                        const containerWidth = wrapper ? wrapper.offsetWidth : this.elements.transcriptContainer.offsetWidth
-                        const textWidth = this.elements.transcript.scrollWidth
-
-                        if (textWidth > containerWidth && text) {
-                            this.elements.transcript.classList.add('scrolling')
+                    if (typeof payload === 'string') {
+                        text = payload
+                    } else if (payload && typeof payload === 'object') {
+                        // Handle payload.text possibly being non-string (defensive)
+                        let t = payload.text
+                        if (typeof t !== 'string') {
+                            // Try to extract common transcript fields
+                            if (t && typeof t === 'object') {
+                                t = t.transcript || (Array.isArray(t) ? t.join(' ') : JSON.stringify(t))
+                            } else {
+                                t = String(t)
+                            }
                         }
-                    }, 50)
+                        text = t || ''
+                        mode = payload.mode || (text && text.length > 20 ? 'scroll' : 'immediate')
+                        final = !!payload.final
+
+                        // Debug unexpected payload shapes
+                        if (!payload.text || typeof payload.text !== 'string') {
+                            console.debug('transcriptUpdate received non-string payload.text, normalized to string:', payload)
+                        }
+                    }
+
+                    const displayText = text || 'Listening for audio...'
+
+                    // Reset any previous scroll animation
+                    this.elements.transcript.classList.remove('scrolling')
+                    this.elements.transcript.classList.remove('scroll-prep')
+
+                    if (mode === 'scroll' && text) {
+                        // Prepare text offscreen immediately to avoid centered flash
+                        this.elements.transcript.classList.add('scroll-prep')
+                        this.elements.transcript.textContent = displayText
+
+                        // Force reflow so measurements are accurate
+                        this.elements.transcript.offsetHeight
+
+                        // After a short delay measure width and start scrolling if needed
+                        setTimeout(() => {
+                            const wrapper = this.elements.transcriptContainer.querySelector('.transcript-wrapper')
+                            const containerWidth = wrapper ? wrapper.offsetWidth : this.elements.transcriptContainer.offsetWidth
+                            const textWidth = this.elements.transcript.scrollWidth
+
+                            if (textWidth > containerWidth) {
+                                // Start the scrolling animation. Keep scroll-prep for positioning; animation's 0% uses translate(100%, -50%)
+                                this.elements.transcript.classList.add('scrolling')
+
+                                // Remove the prep class after a tiny delay so animation has taken effect
+                                setTimeout(() => {
+                                    this.elements.transcript.classList.remove('scroll-prep')
+                                }, 20)
+                            } else {
+                                // No scrolling needed, show centered text
+                                this.elements.transcript.classList.remove('scroll-prep')
+                            }
+                        }, 40)
+                    } else {
+                        // Immediate display: set centered text
+                        this.elements.transcript.textContent = displayText
+                    }
                 }
 
                 updateTheme(theme) {

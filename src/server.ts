@@ -59,6 +59,9 @@ class SwearJarService {
     private bridgingOffset = 0
     private lastTranscriptWasFinal = false
     private streamStartTime = 0
+    // Utterance buffering for transcript display decisions
+    private pendingTranscript: string | null = null
+    private utteranceTimer: NodeJS.Timeout | null = null
 
     // Legacy config for backward compatibility during migration
     private config: SwearJarConfig = {
@@ -411,7 +414,6 @@ class SwearJarService {
             res.json({ success: true })
         })
 
-        // New endpoints for enhanced features
         this.app.get('/api/thresholds', async (req, res) => {
             try {
                 const thresholds = await this.database.getThresholds()
@@ -426,8 +428,7 @@ class SwearJarService {
             try {
                 const { key, value } = req.body
                 await this.database.setSetting(key, value)
-                
-                // Handle special settings that need immediate action
+
                 if (key === 'auto_reset_enabled' || key === 'auto_reset_duration') {
                     await this.startAutoResetTimer()
                 }
@@ -818,7 +819,20 @@ class SwearJarService {
         const confidence = stream.results[0].alternatives[0].confidence || 0
         const streamAge = Date.now() - this.streamStartTime
 
-        if (stream.results[0].isFinal) {
+        const isFinal = !!stream.results[0].isFinal
+
+        // Helper: decide whether transcript should scroll (longer than ~1-2 words)
+        const shouldScroll = (t: string) => {
+            if (!t) return false
+            const words = t.trim().split(/\s+/).filter(Boolean)
+            // If more than 2 words or long string, consider scrolling
+            if (words.length > 2) return true
+            // If contains more than ~20 chars, also scroll
+            if (t.trim().length > 20) return true
+            return false
+        }
+
+        if (isFinal) {
             console.log(`Final transcript (${Math.round(streamAge / 1000)}s): "${transcript}" (confidence: ${confidence.toFixed(2)})`)
 
             this.isFinalEndTime = this.resultEndTime
@@ -827,17 +841,47 @@ class SwearJarService {
             // Process final transcript for profanity detection
             if (transcript) {
                 this.checkForCurseWords(transcript, true)
-                
-                // Send final transcript to overlay for display
-                this.io.emit('transcriptUpdate', transcript)
+
+                // If previously we had a pending buffered interim, clear it
+                if (this.utteranceTimer) {
+                    clearTimeout(this.utteranceTimer)
+                    this.utteranceTimer = null
+                    this.pendingTranscript = null
+                }
+
+                // Decide display mode: short utterances show immediately, longer ones scroll
+                if (shouldScroll(transcript)) {
+                    // Emit an object telling overlay to scroll the final transcript
+                    this.io.emit('transcriptUpdate', { text: transcript, mode: 'scroll', final: true })
+                } else {
+                    // Emit simple string for backwards compatibility
+                    this.io.emit('transcriptUpdate', transcript)
+                }
             }
         } else {
             // Process interim results for responsive detection and display
             if (transcript && confidence > 0.3) {
                 this.checkForCurseWords(transcript, false)
-                
-                // Send interim transcript for live display
-                this.io.emit('transcriptUpdate', transcript)
+
+                // Decide if we should show it immediately or buffer until final
+                const scroll = shouldScroll(transcript)
+
+                if (!scroll) {
+                    // Short interim: emit immediately as plain string
+                    this.io.emit('transcriptUpdate', transcript)
+                } else {
+                    // Longer interim: buffer until final. Start/reset a timer to handle cases where final doesn't arrive
+                    this.pendingTranscript = transcript
+                    if (this.utteranceTimer) clearTimeout(this.utteranceTimer)
+                    // Wait up to 1500ms after last interim before emitting as scrolling final if final doesn't arrive
+                    this.utteranceTimer = setTimeout(() => {
+                        if (this.pendingTranscript) {
+                            this.io.emit('transcriptUpdate', { text: this.pendingTranscript, mode: 'scroll', final: false })
+                            this.pendingTranscript = null
+                        }
+                        this.utteranceTimer = null
+                    }, 1500)
+                }
             }
             this.lastTranscriptWasFinal = false
         }
