@@ -353,12 +353,19 @@ class SpeechTab extends BaseTab {
     }
 
     renderWordLists(words) {
-        // Custom words
-        const customContainer = document.getElementById('customWords')
+        // Update word counts
+        const predefinedCount = (words && Array.isArray(words.predefined)) ? words.predefined.length : 0;
+        const customCount = (words && Array.isArray(words.custom)) ? words.custom.length : 0;
+        
+        this.updateElement('#predefinedCount', predefinedCount);
+        this.updateElement('#customCount', customCount);
+
+        // Custom words - render but keep hidden by default
+        const customContainer = document.getElementById('customWordsList');
         if (customContainer) {
-            const customList = (words && Array.isArray(words.custom)) ? words.custom : []
+            const customList = (words && Array.isArray(words.custom)) ? words.custom : [];
             if (customList.length === 0) {
-                customContainer.innerHTML = '<div class="text-center text-gray-500 py-4">No custom words added</div>'
+                customContainer.innerHTML = '<div class="text-center text-gray-500 py-4">No custom words added</div>';
             } else {
                 customContainer.innerHTML = customList.map(word => `
                     <div class="flex justify-between items-center p-2 bg-base-200 rounded">
@@ -367,23 +374,54 @@ class SpeechTab extends BaseTab {
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
-                `).join('')
+                `).join('');
             }
         }
 
-        // Predefined words
-        const predefinedContainer = document.getElementById('predefinedWords')
+        // Predefined words - render but keep hidden by default
+        const predefinedContainer = document.getElementById('predefinedWordsList');
         if (predefinedContainer) {
-            const predefinedList = (words && Array.isArray(words.predefined)) ? words.predefined : []
+            const predefinedList = (words && Array.isArray(words.predefined)) ? words.predefined : [];
             if (predefinedList.length === 0) {
-                predefinedContainer.innerHTML = '<div class="text-center text-gray-500 py-4">No predefined words</div>'
+                predefinedContainer.innerHTML = '<div class="text-center text-gray-500 py-4">No predefined words</div>';
             } else {
                 predefinedContainer.innerHTML = predefinedList.map(word => `
                     <div class="p-2 bg-base-200 rounded">
                         <span>${word}</span>
                     </div>
-                `).join('')
+                `).join('');
             }
+        }
+
+        // Reset button states to ensure words are hidden by default
+        this.resetWordListVisibility();
+    }
+
+    resetWordListVisibility() {
+        // Hide all word lists by default
+        const predefinedContainer = document.getElementById('predefinedWordsContainer');
+        const predefinedList = document.getElementById('predefinedWordsList');
+        const customContainer = document.getElementById('customWordsContainer');
+        const customList = document.getElementById('customWordsList');
+        const predefinedBtn = document.getElementById('showPredefinedWordsBtn');
+        const customBtn = document.getElementById('showCustomWordsBtn');
+
+        if (predefinedContainer) predefinedContainer.classList.add('hidden');
+        if (predefinedList) predefinedList.classList.add('hidden');
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customList) customList.classList.add('hidden');
+
+        // Reset button states
+        if (predefinedBtn) {
+            predefinedBtn.innerHTML = '<i class="fas fa-eye"></i> Show Words';
+            predefinedBtn.setAttribute('onclick', 'showPredefinedWords()');
+            predefinedBtn.classList.remove('hidden');
+        }
+
+        if (customBtn) {
+            customBtn.innerHTML = '<i class="fas fa-eye"></i> Show Words';
+            customBtn.setAttribute('onclick', 'showCustomWords()');
+            customBtn.classList.remove('hidden');
         }
     }
 

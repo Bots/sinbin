@@ -167,6 +167,7 @@ class SinBinApp {
             this.data.words = data;
             this.updateWordCounts(data);
             this.updateCustomWordsList(data.custom || []);
+            this.updatePredefinedWordsList(data.predefined || []);
         } catch (error) {
             console.error('Error loading words:', error);
         }
@@ -298,18 +299,68 @@ class SinBinApp {
         if (!container) return;
 
         if (words.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-center p-4">No custom words added yet</p>';
+            container.innerHTML = '<p class=\"text-gray-400 text-center p-4\">No custom words added yet</p>';
             return;
         }
 
         container.innerHTML = words.map(word => `
-            <div class="flex items-center justify-between p-3 card">
-                <span class="font-medium">${word}</span>
-                <button class="btn btn-danger btn-sm" onclick="app.removeCustomWord('${word}')">
-                    <i class="fas fa-trash"></i>
+            <div class=\"flex items-center justify-between p-3 card\">
+                <span class=\"font-medium\">${word}</span>
+                <button class=\"btn btn-danger btn-sm\" onclick=\"app.removeCustomWord('${word}')\">
+                    <i class=\"fas fa-trash\"></i>
                 </button>
             </div>
         `).join('');
+
+        // Ensure words are hidden by default
+        this.resetWordListVisibility();
+    }
+
+    updatePredefinedWordsList(words) {
+        const container = document.getElementById('predefinedWordsList');
+        if (!container) return;
+
+        if (words.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 text-center p-4">No predefined words</p>';
+            return;
+        }
+
+        container.innerHTML = words.map(word => `
+            <div class="p-3 card">
+                <span class="font-medium">${word}</span>
+            </div>
+        `).join('');
+
+        // Ensure words are hidden by default
+        this.resetWordListVisibility();
+    }
+
+    resetWordListVisibility() {
+        // Hide all word lists by default
+        const predefinedContainer = document.getElementById('predefinedWordsContainer');
+        const predefinedList = document.getElementById('predefinedWordsList');
+        const customContainer = document.getElementById('customWordsContainer');
+        const customList = document.getElementById('customWordsList');
+        const predefinedBtn = document.getElementById('showPredefinedWordsBtn');
+        const customBtn = document.getElementById('showCustomWordsBtn');
+
+        if (predefinedContainer) predefinedContainer.classList.add('hidden');
+        if (predefinedList) predefinedList.classList.add('hidden');
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customList) customList.classList.add('hidden');
+
+        // Reset button states
+        if (predefinedBtn) {
+            predefinedBtn.innerHTML = '<i class="fas fa-eye"></i> Show Words';
+            predefinedBtn.setAttribute('onclick', 'showPredefinedWords()');
+            predefinedBtn.classList.remove('hidden');
+        }
+
+        if (customBtn) {
+            customBtn.innerHTML = '<i class="fas fa-eye"></i> Show Words';
+            customBtn.setAttribute('onclick', 'showCustomWords()');
+            customBtn.classList.remove('hidden');
+        }
     }
 
     updateSoundsList(sounds) {
@@ -1380,6 +1431,49 @@ function previewOverlay() {
     if (window.app) {
         window.app.previewOverlay();
     }
+}
+
+// Word Management Functions
+function showPredefinedWords() {
+    document.getElementById('predefinedWordsContainer').classList.remove('hidden');
+    document.getElementById('showPredefinedWordsBtn').classList.add('hidden');
+}
+
+function hidePredefinedWords() {
+    document.getElementById('predefinedWordsContainer').classList.add('hidden');
+    document.getElementById('predefinedWordsList').classList.add('hidden');
+    document.getElementById('showPredefinedWordsBtn').innerHTML = '<i class="fas fa-eye"></i> Show Words';
+    document.getElementById('showPredefinedWordsBtn').setAttribute('onclick', 'showPredefinedWords()');
+    document.getElementById('showPredefinedWordsBtn').classList.remove('hidden');
+}
+
+function confirmShowPredefinedWords() {
+    document.getElementById('predefinedWordsContainer').classList.add('hidden');
+    document.getElementById('predefinedWordsList').classList.remove('hidden');
+    document.getElementById('showPredefinedWordsBtn').innerHTML = '<i class="fas fa-eye-slash"></i> Hide Words';
+    document.getElementById('showPredefinedWordsBtn').setAttribute('onclick', 'hidePredefinedWords()');
+    document.getElementById('showPredefinedWordsBtn').classList.remove('hidden');
+}
+
+function showCustomWords() {
+    document.getElementById('customWordsContainer').classList.remove('hidden');
+    document.getElementById('showCustomWordsBtn').classList.add('hidden');
+}
+
+function hideCustomWords() {
+    document.getElementById('customWordsContainer').classList.add('hidden');
+    document.getElementById('customWordsList').classList.add('hidden');
+    document.getElementById('showCustomWordsBtn').innerHTML = '<i class="fas fa-eye"></i> Show Words';
+    document.getElementById('showCustomWordsBtn').setAttribute('onclick', 'showCustomWords()');
+    document.getElementById('showCustomWordsBtn').classList.remove('hidden');
+}
+
+function confirmShowCustomWords() {
+    document.getElementById('customWordsContainer').classList.add('hidden');
+    document.getElementById('customWordsList').classList.remove('hidden');
+    document.getElementById('showCustomWordsBtn').innerHTML = '<i class="fas fa-eye-slash"></i> Hide Words';
+    document.getElementById('showCustomWordsBtn').setAttribute('onclick', 'hideCustomWords()');
+    document.getElementById('showCustomWordsBtn').classList.remove('hidden');
 }
 
 // Initialize the app when DOM is loaded

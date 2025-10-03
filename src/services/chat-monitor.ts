@@ -10,7 +10,21 @@ export class ChatMonitor {
         'fuck', 'shit', 'damn', 'hell', 'bitch', 'ass', 'asshole', 'bastard',
         'crap', 'piss', 'cock', 'dick', 'pussy', 'tits', 'goddamn',
         'motherfucker', 'bullshit', 'dammit', 'fuckin', 'fucking',
-        'shitty', 'bitchy', 'dickhead', 'douchebag'
+        'shitty', 'bitchy', 'dickhead', 'douchebag', 'cunt', 'whore',
+        'slut', 'fag', 'faggot', 'nigger', 'retard', 'retarded',
+        'gay', 'homo', 'lesbian', 'tranny', 'transgender', 'dyke',
+        'jackass', 'smartass', 'dumbass', 'fatass', 'badass',
+        'horseshit', 'chickenshit', 'dogshit', 'apeshit', 'batshit',
+        'clusterfuck', 'mindfuck', 'buttfuck', 'fuckface', 'fuckhead',
+        'fuckboy', 'fuckwit', 'fucktard', 'fuckstick', 'fucknut',
+        'shitstorm', 'shithead', 'shitface', 'shithole', 'shitlord',
+        'bitchass', 'bitchface', 'sonofabitch', 'son-of-a-bitch',
+        'bastardize', 'dumbfuck', 'dipshit', 'jackshit', 'horsecrap',
+        'bollocks', 'prick', 'twat', 'wanker', 'tosser', 'bellend',
+        'knobhead', 'pillock', 'muppet', 'numpty', 'tossing',
+        'bloody', 'blimey', 'bugger', 'sod', 'git', 'plonker',
+        'tit', 'boob', 'boobs', 'boobies', 'knockers', 'jugs',
+        'hooters', 'melons', 'rack', 'cleavage', 'nipple', 'nipples'
     ]
     private isConnected = false
     private currentSessionId: number | null = null

@@ -444,10 +444,62 @@
                 </div>
             </div>
 
+            <!-- Predefined Words List -->
+            <div class="card p-6 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Predefined Words</h3>
+                    <button class="btn btn-warning" id="showPredefinedWordsBtn" onclick="showPredefinedWords()">
+                        <i class="fas fa-eye"></i>
+                        Show Words
+                    </button>
+                </div>
+                <div id="predefinedWordsContainer" class="hidden">
+                    <div class="alert alert-warning mb-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>These words contain profanity and offensive language. Are you sure you want to view them?</span>
+                    </div>
+                    <div class="flex gap-3 mb-4">
+                        <button class="btn btn-danger" onclick="confirmShowPredefinedWords()">
+                            <i class="fas fa-check"></i>
+                            Yes, Show Words
+                        </button>
+                        <button class="btn btn-secondary" onclick="hidePredefinedWords()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+                <div id="predefinedWordsList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 hidden">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+
             <!-- Custom Words List -->
             <div class="card p-6 mt-6">
-                <h3 class="text-lg font-semibold mb-4">Custom Words</h3>
-                <div id="customWordsList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Custom Words</h3>
+                    <button class="btn btn-warning" id="showCustomWordsBtn" onclick="showCustomWords()">
+                        <i class="fas fa-eye"></i>
+                        Show Words
+                    </button>
+                </div>
+                <div id="customWordsContainer" class="hidden">
+                    <div class="alert alert-warning mb-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>These words may contain profanity and offensive language. Are you sure you want to view them?</span>
+                    </div>
+                    <div class="flex gap-3 mb-4">
+                        <button class="btn btn-danger" onclick="confirmShowCustomWords()">
+                            <i class="fas fa-check"></i>
+                            Yes, Show Words
+                        </button>
+                        <button class="btn btn-secondary" onclick="hideCustomWords()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+                <div id="customWordsList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 hidden">
                     <!-- Dynamic content -->
                 </div>
             </div>
@@ -1016,6 +1068,45 @@
                 section.style.display = 'none';
                 icon.style.transform = 'rotate(-90deg)';
             }
+        }
+
+        // Word Management Functions
+        function showPredefinedWords() {
+            document.getElementById('predefinedWordsContainer').classList.remove('hidden');
+            document.getElementById('showPredefinedWordsBtn').classList.add('hidden');
+        }
+
+        function hidePredefinedWords() {
+            document.getElementById('predefinedWordsContainer').classList.add('hidden');
+            document.getElementById('predefinedWordsList').classList.add('hidden');
+            document.getElementById('showPredefinedWordsBtn').classList.remove('hidden');
+        }
+
+        function confirmShowPredefinedWords() {
+            document.getElementById('predefinedWordsContainer').classList.add('hidden');
+            document.getElementById('predefinedWordsList').classList.remove('hidden');
+            document.getElementById('showPredefinedWordsBtn').innerHTML = '<i class="fas fa-eye-slash"></i> Hide Words';
+            document.getElementById('showPredefinedWordsBtn').setAttribute('onclick', 'hidePredefinedWords()');
+            document.getElementById('showPredefinedWordsBtn').classList.remove('hidden');
+        }
+
+        function showCustomWords() {
+            document.getElementById('customWordsContainer').classList.remove('hidden');
+            document.getElementById('showCustomWordsBtn').classList.add('hidden');
+        }
+
+        function hideCustomWords() {
+            document.getElementById('customWordsContainer').classList.add('hidden');
+            document.getElementById('customWordsList').classList.add('hidden');
+            document.getElementById('showCustomWordsBtn').classList.remove('hidden');
+        }
+
+        function confirmShowCustomWords() {
+            document.getElementById('customWordsContainer').classList.add('hidden');
+            document.getElementById('customWordsList').classList.remove('hidden');
+            document.getElementById('showCustomWordsBtn').innerHTML = '<i class="fas fa-eye-slash"></i> Hide Words';
+            document.getElementById('showCustomWordsBtn').setAttribute('onclick', 'hideCustomWords()');
+            document.getElementById('showCustomWordsBtn').classList.remove('hidden');
         }
 
         // Initialize all sections as expanded
