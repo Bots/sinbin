@@ -56,7 +56,9 @@ class SinBinApp {
             this.updateCounter(count);
         });
 
-        this.socket.on('transcriptUpdate', (text) => {
+        this.socket.on('transcriptUpdate', (payload) => {
+            // Handle both string and object payloads
+            const text = typeof payload === 'string' ? payload : payload.text;
             this.data.transcript = text || 'Waiting for audio...';
             this.updateTranscript(text);
         });

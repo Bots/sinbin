@@ -28,6 +28,7 @@ export class ChatMonitor {
     ]
     private isConnected = false
     private currentSessionId: number | null = null
+    private channelName: string | null = null
 
     // Rate limiting to prevent spam detection
     private userCooldowns = new Map<string, number>()
@@ -39,6 +40,9 @@ export class ChatMonitor {
 
     async initialize(channel: string, username?: string, oauth?: string): Promise<void> {
         try {
+            // Store channel name for later comparison
+            this.channelName = channel.toLowerCase().replace(/^#/, '')
+
             // Load custom words from database
             await this.loadCustomWords()
 
@@ -99,6 +103,12 @@ export class ChatMonitor {
 
             const username = userstate.username || 'unknown'
             const displayName = userstate['display-name'] || username
+
+            // Ignore messages from the streamer
+            if (this.channelName && username.toLowerCase() === this.channelName) {
+                console.log(`Ignoring message from streamer: ${displayName}`)
+                return
+            }
 
             console.log(`Chat message received: ${displayName}: ${message}`)
 
